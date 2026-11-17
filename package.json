@@ -1,0 +1,23 @@
+{
+  "name": "comanda",
+  "private": true,
+  "description": "Comanda+ — sistema de comandas do Quintal do Roger",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/shared && npm run build -w apps/backend && npm run build -w apps/frontend",
+    "build:shared": "npm run build -w packages/shared",
+    "dev:backend": "npm run start:dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test -ws --if-present",
+    "typecheck": "npm run typecheck -ws --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

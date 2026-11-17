@@ -1,3 +1,4 @@
+import { itemSubtotal } from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
 export type OrderItemCreateDto = {
@@ -43,6 +44,6 @@ export class OrderItem {
   getNotes(): string | null { return this.notes; }
 
   getSubtotal(): number {
-    return this.weighed ? Math.round((this.quantity * this.unitPrice) / 1000) : this.quantity * this.unitPrice;
+    return itemSubtotal(this.quantity, this.unitPrice, this.weighed);
   }
 }

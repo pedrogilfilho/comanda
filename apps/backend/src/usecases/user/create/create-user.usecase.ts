@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { DEFAULT_PASSWORD, USERNAME_PATTERN } from '@comanda/shared';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { User, UserRole, USER_ROLES } from 'src/domain/entities/user/user.entity';
@@ -22,7 +23,7 @@ export class CreateUserUsecase {
 
     if (!name) throw new BadRequestException('Nome é obrigatório');
     if (!username) throw new BadRequestException('Usuário (login) é obrigatório');
-    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    if (!USERNAME_PATTERN.test(username)) {
       throw new BadRequestException('Usuário deve ter de 3 a 30 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado');
     }
     if (!USER_ROLES.includes(dto.role)) {
@@ -36,8 +37,8 @@ export class CreateUserUsecase {
       throw new BadRequestException('Já existe um usuário com esse nome');
     }
 
-    // Senha padrão "123" — novo usuário troca no primeiro login
-    const initialPassword = dto.password && dto.password.length > 0 ? dto.password : '123';
+    // Senha padrão; o novo usuário troca no primeiro login
+    const initialPassword = dto.password && dto.password.length > 0 ? dto.password : DEFAULT_PASSWORD;
     const hashedPassword = await this.hashingService.hash(initialPassword);
 
     const user = User.create({

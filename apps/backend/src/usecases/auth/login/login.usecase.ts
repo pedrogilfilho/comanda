@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppError } from 'src/shared/errors/app-error';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { HashingService } from 'src/infra/services/hashing/hashing.service';
 import { JwtService } from 'src/infra/services/jwt/jwt.service';
@@ -24,18 +25,18 @@ export class LoginUsecase {
     // 1. Buscar user pelo username
     const user = await this.userRepository.findByUsername((username || '').trim().toLowerCase());
     if (!user) {
-      throw new UnauthorizedException('Usuário ou senha incorretos');
+      throw AppError.unauthorized('UNAUTHORIZED', 'Usuário ou senha incorretos');
     }
 
     // 2. Validar password
     const isValid = await this.hashingService.compare(password || '', user.getPassword());
     if (!isValid) {
-      throw new UnauthorizedException('Usuário ou senha incorretos');
+      throw AppError.unauthorized('UNAUTHORIZED', 'Usuário ou senha incorretos');
     }
 
     // 3. Usuário desativado não entra
     if (!user.getActive()) {
-      throw new UnauthorizedException('Usuário desativado. Procure o administrador.');
+      throw AppError.unauthorized('USER_INACTIVE', 'Usuário desativado. Procure o administrador.');
     }
 
     // 4. Verificação em 2 etapas: a sessão só é liberada depois do código

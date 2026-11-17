@@ -1,12 +1,12 @@
-import { Controller, Get, Post, Body, Param, Req, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthGuard } from 'src/infra/web/auth/auth.guard';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ListTablesUsecase } from 'src/usecases/table/list/list-tables.usecase';
 import { OpenTableUsecase } from 'src/usecases/table/open/open-table.usecase';
-import { AccountPayment } from 'src/domain/entities/closed-account/closed-account.entity';
 import { CloseTableUsecase } from 'src/usecases/table/close/close-table.usecase';
+import { Roles } from 'src/infra/web/auth/decorators/roles.decorator';
+import { CurrentUser, type RequestUser } from 'src/infra/web/auth/request-user';
+import { CloseTableDto, OpenTableDto } from './dto/table.dto';
 
 @Controller('tables')
-@UseGuards(AuthGuard)
 export class TableController {
   constructor(
     private readonly listTablesUsecase: ListTablesUsecase,
@@ -15,22 +15,27 @@ export class TableController {
   ) {}
 
   @Get()
-  async list() {
+  list() {
     return this.listTablesUsecase.execute();
   }
 
+  @Roles('GARCOM', 'GERENTE', 'ADMIN')
   @Post('open')
   @HttpCode(HttpStatus.CREATED)
-  async open(@Req() req: any, @Body() body: { identifier: string; capacity?: number; clientName?: string }) {
-    return this.openTableUsecase.execute(
-      { identifier: body.identifier, capacity: body.capacity, clientName: body.clientName },
-      req.username,
-    );
+  open(@CurrentUser() user: RequestUser, @Body() body: OpenTableDto) {
+    return this.openTableUsecase.execute(body, user.username);
   }
 
+  // Garçom também fecha a conta (decisão do dono); só o Admin passa por cima de pedidos em preparo
+  @Roles('GARCOM', 'GERENTE', 'ADMIN')
   @Post(':id/close')
   @HttpCode(HttpStatus.OK)
-  async close(@Req() req: any, @Param('id') id: string, @Body() body: { payments?: AccountPayment[] }) {
-    return this.closeTableUsecase.execute(id, req.username, req.role, body?.payments ?? []);
+  close(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: CloseTableDto) {
+    return this.closeTableUsecase.execute({
+      tableId: id,
+      actor: user.username,
+      actorRole: user.role,
+      payments: (body.payments ?? []).map((p) => ({ method: p.method, amount: p.amount, installments: p.installments ?? 1 })),
+    });
   }
 }

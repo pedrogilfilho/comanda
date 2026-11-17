@@ -1,14 +1,16 @@
-import { Controller, Post, Get, Delete, Patch, Body, Param, UseGuards, Req, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthGuard } from 'src/infra/web/auth/auth.guard';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { CreateUserUsecase } from 'src/usecases/user/create/create-user.usecase';
 import { ListUsersUsecase } from 'src/usecases/user/list/list-users.usecase';
 import { DeleteUserUsecase } from 'src/usecases/user/delete/delete-user.usecase';
 import { ResetPasswordUsecase } from 'src/usecases/user/reset-password/reset-password.usecase';
 import { SetUserActiveUsecase } from 'src/usecases/user/set-active/set-user-active.usecase';
 import { ResetTwoFactorUserUsecase } from 'src/usecases/user/reset-two-factor/reset-two-factor-user.usecase';
+import { Roles } from 'src/infra/web/auth/decorators/roles.decorator';
+import { CurrentUser, type RequestUser } from 'src/infra/web/auth/request-user';
+import { CreateUserDto, SetUserActiveDto } from './dto/user.dto';
 
+@Roles('ADMIN')
 @Controller('users')
-@UseGuards(AuthGuard)
 export class UserController {
   constructor(
     private readonly createUserUsecase: CreateUserUsecase,
@@ -19,62 +21,39 @@ export class UserController {
     private readonly resetTwoFactorUserUsecase: ResetTwoFactorUserUsecase,
   ) {}
 
-  private ensureAdmin(req: any) {
-    if (req.role !== 'ADMIN') {
-      throw new ForbiddenException('Apenas administradores podem gerenciar usuários');
-    }
-  }
-
   @Get()
-  async list(@Req() req: any) {
-    this.ensureAdmin(req);
+  list() {
     return this.listUsersUsecase.execute();
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(
-    @Req() req: any,
-    @Body() body: { username: string; name: string; email?: string; password?: string; role: string },
-  ) {
-    this.ensureAdmin(req);
-    return this.createUserUsecase.execute(
-      { username: body.username, name: body.name, email: body.email, password: body.password, role: body.role as any },
-      req.username,
-    );
+  create(@CurrentUser() user: RequestUser, @Body() body: CreateUserDto) {
+    return this.createUserUsecase.execute(body, user.username);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  async remove(@Req() req: any, @Param('id') id: string) {
-    this.ensureAdmin(req);
-    return this.deleteUserUsecase.execute(id, req.userId, req.username);
+  remove(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.deleteUserUsecase.execute(id, user.userId, user.username);
   }
 
   @Post(':id/reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetPassword(@Req() req: any, @Param('id') id: string) {
-    this.ensureAdmin(req);
-    return this.resetPasswordUsecase.execute(id, req.username);
+  resetPassword(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.resetPasswordUsecase.execute(id, user.username);
   }
 
   // Remove a verificação em 2 etapas de quem perdeu o celular
   @Post(':id/reset-two-factor')
   @HttpCode(HttpStatus.OK)
-  async resetTwoFactor(@Req() req: any, @Param('id') id: string) {
-    this.ensureAdmin(req);
-    return this.resetTwoFactorUserUsecase.execute(id, req.username);
+  resetTwoFactor(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.resetTwoFactorUserUsecase.execute(id, user.username);
   }
 
   @Patch(':id/active')
   @HttpCode(HttpStatus.OK)
-  async setActive(@Req() req: any, @Param('id') id: string, @Body() body: { active: boolean }) {
-    this.ensureAdmin(req);
-    return this.setUserActiveUsecase.execute(id, !!body.active, req.userId, req.username);
-  }
-
-  @Get('me')
-  async getMe(@Req() req: any) {
-    return { userId: req.userId, role: req.role, message: 'Usuário autenticado' };
+  setActive(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: SetUserActiveDto) {
+    return this.setUserActiveUsecase.execute(id, body.active, user.userId, user.username);
   }
 }

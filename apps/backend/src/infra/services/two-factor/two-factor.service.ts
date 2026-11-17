@@ -5,6 +5,8 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypt
 
 const ISSUER = 'Comanda+ Quintal do Roger';
 const RECOVERY_CODES = 8;
+const TWO_FACTOR_CODE_LENGTH = 6;
+const RECOVERY_CODE_LENGTH = 8;
 const RECOVERY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem 0/O e 1/I para não confundir
 const MAX_FAILURES = 5;
 const LOCK_MINUTES = 5;
@@ -15,6 +17,9 @@ authenticator.options = { window: 1 };
 @Injectable()
 export class TwoFactorService {
   private readonly failures = new Map<string, { count: number; lockedUntil: number }>();
+
+  // A chave de criptografia vem validada do env (TWO_FACTOR_KEY, ou JWT_SECRET na falta dela)
+  constructor(private readonly encryptionKey: string) {}
 
   generateSecret(): string {
     return authenticator.generateSecret();
@@ -29,7 +34,7 @@ export class TwoFactorService {
   // Código de 6 dígitos gerado pelo app autenticador
   verifyCode(secret: string, code: string): boolean {
     const digits = (code || '').replace(/\D/g, '');
-    if (digits.length !== 6) return false;
+    if (digits.length !== TWO_FACTOR_CODE_LENGTH) return false;
     try {
       return authenticator.check(digits, secret);
     } catch {
@@ -40,7 +45,7 @@ export class TwoFactorService {
   // Confere o código digitado: do app (6 dígitos) ou de recuperação (XXXX-XXXX)
   matchCode(encryptedSecret: string | null, recoveryHashes: string[], code: string): 'APP' | 'RECOVERY' | null {
     if (encryptedSecret && this.verifyCode(this.decrypt(encryptedSecret), code)) return 'APP';
-    if (this.normalizeRecovery(code).length === 8 && recoveryHashes.includes(this.hashRecoveryCode(code))) return 'RECOVERY';
+    if (this.normalizeRecovery(code).length === RECOVERY_CODE_LENGTH && recoveryHashes.includes(this.hashRecoveryCode(code))) return 'RECOVERY';
     return null;
   }
 
@@ -99,7 +104,6 @@ export class TwoFactorService {
   }
 
   private key(): Buffer {
-    const raw = process.env.TWO_FACTOR_KEY || process.env.JWT_SECRET || 'secret';
-    return createHash('sha256').update(raw).digest();
+    return createHash('sha256').update(this.encryptionKey).digest();
   }
 }

@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { AppError } from 'src/shared/errors/app-error';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { AuditLog } from 'src/domain/entities/audit-log/audit-log.entity';
@@ -22,18 +23,18 @@ export class DisableTwoFactorUsecase {
     if (!user.getTwoFactorEnabled()) throw new BadRequestException('A verificação em 2 etapas já está desativada');
 
     const locked = this.twoFactorService.minutesLocked(userId);
-    if (locked > 0) throw new BadRequestException(`Muitas tentativas erradas. Tente de novo em ${locked} min.`);
+    if (locked > 0) throw AppError.badRequest('TWO_FACTOR_LOCKED', `Muitas tentativas erradas. Tente de novo em ${locked} min.`);
 
     if (!this.twoFactorService.matchCode(user.getTwoFactorSecret(), user.getTwoFactorRecoveryCodes(), code)) {
       this.twoFactorService.registerFailure(userId);
-      throw new BadRequestException('Código inválido');
+      throw AppError.badRequest('TWO_FACTOR_INVALID', 'Código inválido');
     }
     this.twoFactorService.clearFailures(userId);
 
     user.disableTwoFactor();
     await this.userRepository.update(user);
     await this.auditLogRepository.create(
-      AuditLog.create('DOIS_FATORES_DESATIVADO', user.getName(), `${user.getName()} (${user.getUsername()})`),
+      AuditLog.create('DOIS_FATORES_DESATIVADO', user.getUsername(), `${user.getName()} (${user.getUsername()})`),
     );
     return { success: true };
   }

@@ -42,7 +42,7 @@ model Table {
   id         String   @id @default(uuid())
   identifier String   @unique @map("number") // número ou nome (ex: 5, A3, Varanda)
   capacity   Int
-  status    String   @default("FREE") // FREE | OCCUPIED | RESERVED | CLOSED
+  status    String   @default("FREE") // FREE | OCCUPIED
   clientName String?
   openedAt  DateTime? // quando a mesa foi aberta (sessão atual)
   createdAt DateTime @default(now())
@@ -118,8 +118,9 @@ model EstoqueMovimentacao {
   productId           String
   quantidadeAnterior  Int
   quantidadeAtual     Int
-  tipoMovimentacao    String   // VENDA | REPOSICAO | AJUSTE
+  tipoMovimentacao    String   // VENDA | ESTORNO | ENTRADA | SAIDA | CONTAGEM
   pedidoId            String?
+  actor               String?  // username de quem causou a movimentação
   nota                String?
   createdAt           DateTime @default(now())
   product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)

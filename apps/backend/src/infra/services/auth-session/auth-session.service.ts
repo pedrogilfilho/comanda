@@ -1,45 +1,46 @@
 import { Injectable } from '@nestjs/common';
+import { SESSION_HOURS, type UserRole } from '@comanda/shared';
 import { User } from 'src/domain/entities/user/user.entity';
 import { JwtService } from 'src/infra/services/jwt/jwt.service';
+
+export interface LoggedUser {
+  id: string;
+  username: string;
+  name: string;
+  email: string | null;
+  role: UserRole;
+  needsPasswordChange: boolean;
+  twoFactorEnabled: boolean;
+}
 
 export interface AuthSession {
   status: 'OK';
   accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    username: string;
-    name: string;
-    email: string | null;
-    role: string;
-    needsPasswordChange: boolean;
+  user: LoggedUser;
+}
+
+export function toLoggedUser(user: User): LoggedUser {
+  return {
+    id: user.getId(),
+    username: user.getUsername(),
+    name: user.getName(),
+    email: user.getEmail(),
+    role: user.getRole(),
+    needsPasswordChange: user.getNeedsPasswordChange(),
+    twoFactorEnabled: user.getTwoFactorEnabled(),
   };
 }
 
-// Gera a sessão (tokens + dados do usuário) depois que o login foi validado
 @Injectable()
 export class AuthSessionService {
   constructor(private readonly jwtService: JwtService) {}
 
   issue(user: User): AuthSession {
-    // 8h cobre um turno de trabalho sem deslogar
+    // Um turno de trabalho sem deslogar
     const accessToken = this.jwtService.sign(
       { userId: user.getId(), username: user.getUsername(), name: user.getName(), role: user.getRole() },
-      '8h',
+      `${SESSION_HOURS}h`,
     );
-    const refreshToken = this.jwtService.signRefresh({ userId: user.getId() }, '7d');
-    return {
-      status: 'OK',
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.getId(),
-        username: user.getUsername(),
-        name: user.getName(),
-        email: user.getEmail(),
-        role: user.getRole(),
-        needsPasswordChange: user.getNeedsPasswordChange(),
-      },
-    };
+    return { status: 'OK', accessToken, user: toLoggedUser(user) };
   }
 }

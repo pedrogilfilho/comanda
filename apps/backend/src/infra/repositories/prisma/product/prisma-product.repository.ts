@@ -1,13 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import type { Product as ProductRow } from '@prisma/client';
+import type { ProductCategory } from '@comanda/shared';
 import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
 import { Product } from 'src/domain/entities/product/product.entity';
 
 @Injectable()
-export class PrismaProductRepository implements ProductRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaProductRepository extends ProductRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
-  private toEntity(raw: any): Product {
+  private toEntity(raw: ProductRow): Product {
     return Product.with({
       id: raw.id,
       name: raw.name,
@@ -15,7 +19,7 @@ export class PrismaProductRepository implements ProductRepository {
       price: raw.price,
       pricePerKg: raw.pricePerKg,
       minGrams: raw.minGrams,
-      category: raw.category,
+      category: raw.category as ProductCategory,
       isMeat: raw.isMeat,
       available: raw.available,
       stock: raw.quantidadeDisponivel,
@@ -27,24 +31,28 @@ export class PrismaProductRepository implements ProductRepository {
 
   async findAll(): Promise<Product[]> {
     // Inclui itens removidos do cardápio, para que pedidos antigos continuem com nome correto
-    const rows = await this.prisma.product.findMany({
-      orderBy: [{ category: 'asc' }, { name: 'asc' }],
-    });
-    return rows.map((r: any) => this.toEntity(r));
+    const rows = await this.prisma.db.product.findMany({ orderBy: [{ category: 'asc' }, { name: 'asc' }] });
+    return rows.map((r) => this.toEntity(r));
   }
 
   async findById(id: string): Promise<Product | null> {
-    const raw = await this.prisma.product.findUnique({ where: { id } });
+    const raw = await this.prisma.db.product.findUnique({ where: { id } });
     return raw ? this.toEntity(raw) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Product[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.prisma.db.product.findMany({ where: { id: { in: ids } } });
+    return rows.map((r) => this.toEntity(r));
+  }
+
   async findByName(name: string): Promise<Product | null> {
-    const raw = await this.prisma.product.findFirst({ where: { name, available: true } });
+    const raw = await this.prisma.db.product.findFirst({ where: { name, available: true } });
     return raw ? this.toEntity(raw) : null;
   }
 
   async create(product: Product): Promise<void> {
-    await this.prisma.product.create({
+    await this.prisma.db.product.create({
       data: {
         id: product.getId(),
         name: product.getName(),
@@ -64,7 +72,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async update(product: Product): Promise<void> {
-    await this.prisma.product.update({
+    await this.prisma.db.product.update({
       where: { id: product.getId() },
       data: {
         name: product.getName(),
@@ -77,10 +85,29 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async hasOrders(id: string): Promise<boolean> {
-    return (await this.prisma.orderItem.count({ where: { productId: id } })) > 0;
+    return (await this.prisma.db.orderItem.count({ where: { productId: id } })) > 0;
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.product.delete({ where: { id } });
+    await this.prisma.db.product.delete({ where: { id } });
+  }
+
+  // UPDATE condicional: dois pedidos simultâneos nunca vendem o mesmo estoque.
+  async decrementStock(id: string, quantity: number): Promise<number | null> {
+    const rows = await this.prisma.db.$queryRaw<{ before: number }[]>`
+      UPDATE "product"
+      SET "quantidadeDisponivel" = "quantidadeDisponivel" - ${quantity}, "updatedAt" = NOW()
+      WHERE id = ${id} AND "quantidadeDisponivel" >= ${quantity}
+      RETURNING "quantidadeDisponivel" + ${quantity} AS before`;
+    return rows.length > 0 ? rows[0].before : null;
+  }
+
+  async incrementStock(id: string, quantity: number): Promise<number> {
+    const rows = await this.prisma.db.$queryRaw<{ before: number }[]>`
+      UPDATE "product"
+      SET "quantidadeDisponivel" = "quantidadeDisponivel" + ${quantity}, "updatedAt" = NOW()
+      WHERE id = ${id}
+      RETURNING "quantidadeDisponivel" - ${quantity} AS before`;
+    return rows[0]?.before ?? 0;
   }
 }

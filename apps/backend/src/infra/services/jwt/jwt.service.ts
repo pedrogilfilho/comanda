@@ -1,52 +1,46 @@
 import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
+import type { UserRole } from '@comanda/shared';
 
+export interface SessionPayload {
+  userId: string;
+  username: string;
+  name: string;
+  role: UserRole;
+}
+
+export interface ChallengePayload {
+  userId: string;
+  step: 'verify' | 'setup';
+}
+
+// O segredo vem validado do env (config/env.ts); aqui não existe fallback.
 @Injectable()
 export class JwtService {
-  sign(payload: any, expiresIn: string = '1h'): string {
-    const secret = process.env.JWT_SECRET || 'secret';
-    return jwt.sign(payload, secret, { expiresIn } as any);
+  constructor(private readonly secret: string) {}
+
+  sign(payload: SessionPayload, expiresIn: string): string {
+    return jwt.sign(payload, this.secret, { expiresIn } as jwt.SignOptions);
   }
 
-  signRefresh(payload: any, expiresIn: string = '7d'): string {
-    const secret = process.env.JWT_REFRESH_SECRET || 'refresh';
-    return jwt.sign(payload, secret, { expiresIn } as any);
-  }
-
-  verify(token: string): any {
-    try {
-      const secret = process.env.JWT_SECRET || 'secret';
-      return jwt.verify(token, secret);
-    } catch (error) {
-      throw new Error('Token inválido');
-    }
+  verify(token: string): SessionPayload {
+    const payload = jwt.verify(token, this.secret) as jwt.JwtPayload & Partial<SessionPayload>;
+    if (!payload.userId || payload.purpose === '2fa') throw new Error('Token inválido');
+    return payload as SessionPayload;
   }
 
   // Token provisório do login em 2 etapas: não dá acesso ao sistema, só à tela do código
-  signChallenge(payload: { userId: string; step: 'verify' | 'setup' }, expiresIn: string = '10m'): string {
-    return jwt.sign({ ...payload, purpose: '2fa' }, this.challengeSecret(), { expiresIn } as any);
+  signChallenge(payload: ChallengePayload, expiresIn: string = '10m'): string {
+    return jwt.sign({ ...payload, purpose: '2fa' }, this.challengeSecret(), { expiresIn } as jwt.SignOptions);
   }
 
-  verifyChallenge(token: string): { userId: string; step: 'verify' | 'setup' } {
-    try {
-      const payload: any = jwt.verify(token, this.challengeSecret());
-      if (payload?.purpose !== '2fa' || !payload.userId) throw new Error();
-      return { userId: payload.userId, step: payload.step };
-    } catch (error) {
-      throw new Error('Token de verificação inválido');
-    }
+  verifyChallenge(token: string): ChallengePayload {
+    const payload = jwt.verify(token, this.challengeSecret()) as jwt.JwtPayload & Partial<ChallengePayload> & { purpose?: string };
+    if (payload.purpose !== '2fa' || !payload.userId || !payload.step) throw new Error('Token de verificação inválido');
+    return { userId: payload.userId, step: payload.step };
   }
 
   private challengeSecret(): string {
-    return `${process.env.JWT_SECRET || 'secret'}:2fa-challenge`;
-  }
-
-  verifyRefresh(token: string): any {
-    try {
-      const secret = process.env.JWT_REFRESH_SECRET || 'refresh';
-      return jwt.verify(token, secret);
-    } catch (error) {
-      throw new Error('Refresh token inválido');
-    }
+    return `${this.secret}:2fa-challenge`;
   }
 }

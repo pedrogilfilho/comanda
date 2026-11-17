@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { serviceFee, type OrderStatus } from '@comanda/shared';
 import { OrderRepository } from 'src/domain/repositories/order.repository.interface';
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
 
@@ -15,7 +16,7 @@ export interface OrderItemView {
 
 export interface OrderView {
   id: string;
-  status: string;
+  status: OrderStatus;
   createdAt: Date;
   items: OrderItemView[];
   subtotal: number;
@@ -24,11 +25,9 @@ export interface OrderView {
 export interface TableAccountView {
   orders: OrderView[];
   subtotal: number;
-  serviceFee: number; // 10%
+  serviceFee: number;
   total: number;
 }
-
-const SERVICE_FEE_RATE = 0.1;
 
 @Injectable()
 export class ListOrdersByTableUsecase {
@@ -38,37 +37,29 @@ export class ListOrdersByTableUsecase {
   ) {}
 
   async execute(tableId: string): Promise<TableAccountView> {
-    const orders = await this.orderRepository.findByTableId(tableId);
-    const products = await this.productRepository.findAll();
-    const nameById = new Map(products.map((p) => [p.getId(), { name: p.getName(), isMeat: p.getIsMeat() }]));
+    const orders = await this.orderRepository.findActiveByTableId(tableId);
+    const products = await this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]);
+    const productById = new Map(products.map((p) => [p.getId(), p]));
 
-    const orderViews: OrderView[] = orders.map((o) => {
-      const items: OrderItemView[] = o.getItems().map((it) => {
-        const info = nameById.get(it.getProductId());
-        return {
-          id: it.getId(),
-          productId: it.getProductId(),
-          productName: info?.name ?? 'Produto',
-          isMeat: info?.isMeat ?? false,
-          quantity: it.getQuantity(),
-          unitPrice: it.getUnitPrice(),
-          subtotal: it.getSubtotal(),
-          notes: it.getNotes(),
-        };
-      });
-      return {
-        id: o.getId(),
-        status: o.getStatus(),
-        createdAt: o.getCreatedAt(),
-        items,
-        subtotal: o.getTotalAmount(),
-      };
-    });
+    const orderViews: OrderView[] = orders.map((o) => ({
+      id: o.getId(),
+      status: o.getStatus(),
+      createdAt: o.getCreatedAt(),
+      subtotal: o.getTotalAmount(),
+      items: o.getItems().map((it) => ({
+        id: it.getId(),
+        productId: it.getProductId(),
+        productName: productById.get(it.getProductId())?.getName() ?? 'Item removido',
+        isMeat: it.getWeighed(),
+        quantity: it.getQuantity(),
+        unitPrice: it.getUnitPrice(),
+        subtotal: it.getSubtotal(),
+        notes: it.getNotes(),
+      })),
+    }));
 
     const subtotal = orderViews.reduce((sum, o) => sum + o.subtotal, 0);
-    const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
-    const total = subtotal + serviceFee;
-
-    return { orders: orderViews, subtotal, serviceFee, total };
+    const fee = serviceFee(subtotal);
+    return { orders: orderViews, subtotal, serviceFee: fee, total: subtotal + fee };
   }
 }

@@ -4,8 +4,10 @@ import { TableRepository } from 'src/domain/repositories/table.repository.interf
 import { Table } from 'src/domain/entities/table/table.entity';
 
 @Injectable()
-export class PrismaTableRepository implements TableRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaTableRepository extends TableRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   private toEntity(raw: any): Table {
     return Table.with({
@@ -21,22 +23,22 @@ export class PrismaTableRepository implements TableRepository {
   }
 
   async findAll(): Promise<Table[]> {
-    const rows = await this.prisma.table.findMany({ orderBy: { createdAt: 'asc' } });
+    const rows = await this.prisma.db.table.findMany({ orderBy: { createdAt: 'asc' } });
     return rows.map((r: any) => this.toEntity(r));
   }
 
   async findById(id: string): Promise<Table | null> {
-    const raw = await this.prisma.table.findUnique({ where: { id } });
+    const raw = await this.prisma.db.table.findUnique({ where: { id } });
     return raw ? this.toEntity(raw) : null;
   }
 
   async findByIdentifier(identifier: string): Promise<Table | null> {
-    const raw = await this.prisma.table.findUnique({ where: { identifier } });
+    const raw = await this.prisma.db.table.findUnique({ where: { identifier } });
     return raw ? this.toEntity(raw) : null;
   }
 
   async create(table: Table): Promise<void> {
-    await this.prisma.table.create({
+    await this.prisma.db.table.create({
       data: {
         id: table.getId(),
         identifier: table.getIdentifier(),
@@ -51,7 +53,7 @@ export class PrismaTableRepository implements TableRepository {
   }
 
   async update(table: Table): Promise<void> {
-    await this.prisma.table.update({
+    await this.prisma.db.table.update({
       where: { id: table.getId() },
       data: {
         status: table.getStatus(),

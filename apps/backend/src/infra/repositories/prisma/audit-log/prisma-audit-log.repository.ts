@@ -4,8 +4,10 @@ import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository
 import { AuditLog } from 'src/domain/entities/audit-log/audit-log.entity';
 
 @Injectable()
-export class PrismaAuditLogRepository implements AuditLogRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaAuditLogRepository extends AuditLogRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   private toEntity(raw: any): AuditLog {
     return AuditLog.with({
@@ -18,7 +20,7 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
   }
 
   async create(log: AuditLog): Promise<void> {
-    await this.prisma.auditLog.create({
+    await this.prisma.db.auditLog.create({
       data: {
         id: log.getId(),
         action: log.getAction(),
@@ -30,7 +32,7 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
   }
 
   async findBetween(from: Date, to: Date, action?: string): Promise<AuditLog[]> {
-    const rows = await this.prisma.auditLog.findMany({
+    const rows = await this.prisma.db.auditLog.findMany({
       where: { createdAt: { gte: from, lte: to }, ...(action ? { action } : {}) },
       orderBy: { createdAt: 'desc' },
     });

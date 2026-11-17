@@ -1,21 +1,7 @@
+import type { AuditAction } from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
-export type AuditAction =
-  | 'USUARIO_CRIADO'
-  | 'USUARIO_EXCLUIDO'
-  | 'USUARIO_ATIVADO'
-  | 'USUARIO_DESATIVADO'
-  | 'SENHA_RESETADA'
-  | 'DOIS_FATORES_ATIVADO'
-  | 'DOIS_FATORES_DESATIVADO'
-  | 'DOIS_FATORES_RESETADO'
-  | 'MESA_ABERTA'
-  | 'PEDIDO_LANCADO'
-  | 'STATUS_ALTERADO'
-  | 'CONTA_FECHADA'
-  | 'ITEM_CRIADO'
-  | 'ITEM_REMOVIDO'
-  | 'ESTOQUE_AJUSTADO';
+export type { AuditAction };
 
 export type AuditLogWithDto = {
   id: string;

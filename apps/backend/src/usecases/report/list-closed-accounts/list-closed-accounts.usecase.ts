@@ -42,10 +42,10 @@ export class ListClosedAccountsUsecase {
 
   async execute(from: Date, to: Date): Promise<ClosedAccountsResult> {
     const accounts = await this.closedAccountRepository.findBetween(from, to);
-    const [orders, products, users] = await Promise.all([
-      this.orderRepository.findByClosedAccountIds(accounts.map((a) => a.getId())),
-      this.productRepository.findAll(),
-      this.userRepository.findAll(),
+    const orders = await this.orderRepository.findByClosedAccountIds(accounts.map((a) => a.getId()));
+    const [products, users] = await Promise.all([
+      this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]),
+      this.userRepository.findByIds([...new Set(orders.map((o) => o.getUserId()))]),
     ]);
     const productById = new Map(products.map((p) => [p.getId(), p]));
     const userById = new Map(users.map((u) => [u.getId(), u]));
@@ -88,7 +88,6 @@ export class ListClosedAccountsUsecase {
         orders: accountOrders,
       };
     });
-    // Mesas fechadas sem consumo (registradas antes desta regra) não aparecem
     const views = all.filter((v) => v.orders.length > 0 || v.total > 0);
 
     return {

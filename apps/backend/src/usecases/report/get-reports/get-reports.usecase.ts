@@ -3,9 +3,7 @@ import { OrderRepository } from 'src/domain/repositories/order.repository.interf
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.repository.interface';
-import { summarizePayments, PaymentSummary } from 'src/domain/entities/closed-account/closed-account.entity';
-
-const SERVICE_FEE_RATE = 0.1;
+import { summarizePayments, type PaymentSummary } from 'src/domain/entities/closed-account/closed-account.entity';
 
 export interface ReportsView {
   from: Date;
@@ -16,9 +14,10 @@ export interface ReportsView {
   topMeats: { name: string; grams: number; subtotal: number }[];
   byCategory: { category: string; subtotal: number }[];
   averageTicket: number; // por conta fechada (com taxa)
-  byPayment: PaymentSummary; // formas de pagamento das contas fechadas no período
+  byPayment: PaymentSummary;
 }
 
+// Fonte única: as contas fechadas no período. Os pedidos entram só para os rankings.
 @Injectable()
 export class GetReportsUsecase {
   constructor(
@@ -29,20 +28,18 @@ export class GetReportsUsecase {
   ) {}
 
   async execute(from: Date, to: Date): Promise<ReportsView> {
-    const [orders, products, users, closedAccounts] = await Promise.all([
-      this.orderRepository.findClosedBetween(from, to),
-      this.productRepository.findAll(),
-      this.userRepository.findAll(),
-      this.closedAccountRepository.findBetween(from, to),
+    const accounts = await this.closedAccountRepository.findBetween(from, to);
+    const orders = await this.orderRepository.findByClosedAccountIds(accounts.map((a) => a.getId()));
+    const [products, users] = await Promise.all([
+      this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]),
+      this.userRepository.findByIds([...new Set(orders.map((o) => o.getUserId()))]),
     ]);
     const productById = new Map(products.map((p) => [p.getId(), p]));
     const userById = new Map(users.map((u) => [u.getId(), u]));
 
-    const subtotal = orders.reduce((s, o) => s + o.getTotalAmount(), 0);
-    const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
-
-    // Contas fechadas no período (pedidos antigos, sem conta registrada, agrupados pelo instante do fechamento)
-    const accounts = new Set(orders.map((o) => o.getClosedAccountId() ?? `${o.getTableId()}|${o.getUpdatedAt().getTime()}`)).size;
+    const subtotal = accounts.reduce((s, a) => s + a.getSubtotal(), 0);
+    const serviceFee = accounts.reduce((s, a) => s + a.getServiceFee(), 0);
+    const total = accounts.reduce((s, a) => s + a.getTotal(), 0);
 
     // Funcionário que mais vendeu
     const byEmployee = new Map<string, { subtotal: number; orders: number }>();
@@ -75,7 +72,7 @@ export class GetReportsUsecase {
           m.grams += it.getQuantity();
           m.subtotal += sub;
           meats.set(p.getName(), m);
-        } else if (p.getCategory() === 'BEBIDA' && /cerveja/i.test(p.getName())) {
+        } else if (p.getCategory() === 'BEBIDA' && /cerveja|chope/i.test(p.getName())) {
           const b = beers.get(p.getName()) ?? { quantity: 0, subtotal: 0 };
           b.quantity += it.getQuantity();
           b.subtotal += sub;
@@ -87,15 +84,13 @@ export class GetReportsUsecase {
     return {
       from,
       to,
-      revenue: { subtotal, serviceFee, total: subtotal + serviceFee, accounts },
+      revenue: { subtotal, serviceFee, total, accounts: accounts.length },
       topEmployees,
       topBeers: [...beers.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.quantity - a.quantity),
       topMeats: [...meats.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.grams - a.grams),
-      byCategory: [...categories.entries()]
-        .map(([category, sub]) => ({ category, subtotal: sub }))
-        .sort((a, b) => b.subtotal - a.subtotal),
-      averageTicket: accounts > 0 ? Math.round((subtotal + serviceFee) / accounts) : 0,
-      byPayment: summarizePayments(closedAccounts.flatMap((a) => a.getPayments())),
+      byCategory: [...categories.entries()].map(([category, sub]) => ({ category, subtotal: sub })).sort((a, b) => b.subtotal - a.subtotal),
+      averageTicket: accounts.length > 0 ? Math.round(total / accounts.length) : 0,
+      byPayment: summarizePayments(accounts.flatMap((a) => a.getPayments())),
     };
   }
 }

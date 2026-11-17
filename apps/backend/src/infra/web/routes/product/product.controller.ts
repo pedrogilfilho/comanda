@@ -1,12 +1,13 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, Req, UseGuards, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
-import { AuthGuard } from 'src/infra/web/auth/auth.guard';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ListProductsUsecase } from 'src/usecases/product/list/list-products.usecase';
-import { CreateProductUsecase, CreateProductInput } from 'src/usecases/product/create/create-product.usecase';
+import { CreateProductUsecase } from 'src/usecases/product/create/create-product.usecase';
 import { RemoveProductUsecase } from 'src/usecases/product/remove/remove-product.usecase';
 import { AdjustStockUsecase } from 'src/usecases/product/adjust-stock/adjust-stock.usecase';
+import { Roles } from 'src/infra/web/auth/decorators/roles.decorator';
+import { CurrentUser, type RequestUser } from 'src/infra/web/auth/request-user';
+import { AdjustStockDto, CreateProductDto } from './dto/product.dto';
 
 @Controller('products')
-@UseGuards(AuthGuard)
 export class ProductController {
   constructor(
     private readonly listProductsUsecase: ListProductsUsecase,
@@ -15,33 +16,29 @@ export class ProductController {
     private readonly adjustStockUsecase: AdjustStockUsecase,
   ) {}
 
-  private ensureAdmin(req: any) {
-    if (req.role !== 'ADMIN') throw new ForbiddenException('Apenas administradores podem alterar o cardápio');
-  }
-
   @Get()
-  async list() {
+  list() {
     return this.listProductsUsecase.execute();
   }
 
+  @Roles('ADMIN')
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Req() req: any, @Body() body: CreateProductInput) {
-    this.ensureAdmin(req);
-    return this.createProductUsecase.execute(body, req.username);
+  create(@CurrentUser() user: RequestUser, @Body() body: CreateProductDto) {
+    return this.createProductUsecase.execute(body, user.username);
   }
 
+  @Roles('ADMIN')
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  async remove(@Req() req: any, @Param('id') id: string) {
-    this.ensureAdmin(req);
-    return this.removeProductUsecase.execute(id, req.username);
+  remove(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.removeProductUsecase.execute(id, user.username);
   }
 
+  @Roles('ADMIN')
   @Patch(':id/stock')
   @HttpCode(HttpStatus.OK)
-  async adjustStock(@Req() req: any, @Param('id') id: string, @Body() body: { stock: number; reason?: string }) {
-    this.ensureAdmin(req);
-    return this.adjustStockUsecase.execute(id, Number(body.stock), req.username, body.reason);
+  adjustStock(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: AdjustStockDto) {
+    return this.adjustStockUsecase.execute({ productId: id, stock: body.stock, type: body.type, reason: body.reason, actor: user.username });
   }
 }

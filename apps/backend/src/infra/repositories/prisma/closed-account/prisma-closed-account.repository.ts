@@ -4,8 +4,10 @@ import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.
 import { ClosedAccount, PaymentMethod } from 'src/domain/entities/closed-account/closed-account.entity';
 
 @Injectable()
-export class PrismaClosedAccountRepository implements ClosedAccountRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaClosedAccountRepository extends ClosedAccountRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   private toEntity(raw: any): ClosedAccount {
     return ClosedAccount.with({
@@ -28,7 +30,7 @@ export class PrismaClosedAccountRepository implements ClosedAccountRepository {
   }
 
   async create(account: ClosedAccount): Promise<void> {
-    await this.prisma.closedAccount.create({
+    await this.prisma.db.closedAccount.create({
       data: {
         id: account.getId(),
         tableId: account.getTableId(),
@@ -46,7 +48,7 @@ export class PrismaClosedAccountRepository implements ClosedAccountRepository {
   }
 
   async findBetween(from: Date, to: Date): Promise<ClosedAccount[]> {
-    const rows = await this.prisma.closedAccount.findMany({
+    const rows = await this.prisma.db.closedAccount.findMany({
       where: { closedAt: { gte: from, lte: to } },
       include: { payments: { orderBy: { createdAt: 'asc' } } },
       orderBy: { closedAt: 'desc' },

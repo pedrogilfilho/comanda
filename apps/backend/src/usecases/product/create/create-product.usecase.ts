@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { DEFAULT_MIN_GRAMS } from '@comanda/shared';
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { Product, ProductCategory, PRODUCT_CATEGORIES } from 'src/domain/entities/product/product.entity';
@@ -31,9 +32,15 @@ export class CreateProductUsecase {
 
     const isMeat = input.category === 'CARNE';
     if (isMeat) {
-      if (!input.pricePerKg || input.pricePerKg <= 0) throw new BadRequestException('Informe o preço por kg');
-    } else if (!input.price || input.price <= 0) {
+      if (!Number.isInteger(input.pricePerKg) || input.pricePerKg! <= 0) throw new BadRequestException('Informe o preço por kg');
+      if (input.minGrams != null && (!Number.isInteger(input.minGrams) || input.minGrams <= 0)) {
+        throw new BadRequestException('O pedido mínimo em gramas precisa ser maior que zero');
+      }
+    } else if (!Number.isInteger(input.price) || input.price! <= 0) {
       throw new BadRequestException('Informe o preço do item');
+    }
+    if (input.stock != null && (!Number.isInteger(input.stock) || input.stock < 0)) {
+      throw new BadRequestException('Estoque inicial inválido');
     }
 
     const product = Product.create({
@@ -42,7 +49,7 @@ export class CreateProductUsecase {
       category: input.category,
       price: input.price,
       pricePerKg: input.pricePerKg,
-      minGrams: input.minGrams ?? 300,
+      minGrams: input.minGrams ?? DEFAULT_MIN_GRAMS,
       stock: input.stock ?? 0,
     });
     await this.productRepository.create(product);

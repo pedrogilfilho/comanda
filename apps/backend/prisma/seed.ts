@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { DEFAULT_PASSWORD } from '@comanda/shared';
 import { buildMenu } from './menu';
 
 const prisma = new PrismaClient();
@@ -8,9 +9,9 @@ async function main() {
   console.log('🌱 Seedando dados iniciais...');
 
   // Senha padrão inicial (todos trocam no primeiro login)
-  const defaultPassword = await bcrypt.hash('123', 10);
+  const defaultPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
-  // Usuários (login pelo username, senha inicial "123")
+  // Usuários (login pelo username, senha inicial padrão)
   const users = [
     { username: 'admin', name: 'Admin', email: 'admin@comanda.com', role: 'ADMIN' },
     { username: 'gerente', name: 'Gerente', email: 'gerente@comanda.com', role: 'GERENTE' },

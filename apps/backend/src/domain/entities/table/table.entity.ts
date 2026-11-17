@@ -1,6 +1,7 @@
+import type { TableStatus } from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
-export type TableStatus = 'FREE' | 'OCCUPIED' | 'CLOSED';
+export type { TableStatus };
 
 export type TableCreateDto = {
   identifier: string;
@@ -61,6 +62,7 @@ export class Table {
   getOpenedAt(): Date | null { return this.openedAt; }
   getCreatedAt(): Date { return this.createdAt; }
   getUpdatedAt(): Date { return this.updatedAt; }
+  isOpen(): boolean { return this.status === 'OCCUPIED'; }
 
   occupy(clientName?: string | null): void {
     this.status = 'OCCUPIED';

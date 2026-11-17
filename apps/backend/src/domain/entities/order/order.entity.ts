@@ -1,7 +1,17 @@
+import { canTransition, isActiveOrder, isInKitchen, type OrderStatus } from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 import { OrderItem } from '../order-item/order-item.entity';
 
-export type OrderStatus = 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED' | 'CLOSED';
+export type { OrderStatus };
+
+export class InvalidOrderTransition extends Error {
+  constructor(
+    public readonly from: OrderStatus,
+    public readonly to: OrderStatus,
+  ) {
+    super(`Pedido não pode ir de ${from} para ${to}`);
+  }
+}
 
 export type OrderCreateDto = {
   tableId: string;
@@ -70,7 +80,12 @@ export class Order {
   getClosedAccountId(): string | null { return this.closedAccountId; }
   getUpdatedAt(): Date { return this.updatedAt; }
 
+  isActive(): boolean { return isActiveOrder(this.status); }
+  isInKitchen(): boolean { return isInKitchen(this.status); }
+
+  // Só transições previstas na máquina de estados; CLOSED acontece pelo fechamento da conta
   updateStatus(status: OrderStatus): void {
+    if (!canTransition(this.status, status)) throw new InvalidOrderTransition(this.status, status);
     this.status = status;
     this.updatedAt = new Date();
   }

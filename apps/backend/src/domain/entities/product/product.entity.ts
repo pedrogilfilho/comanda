@@ -1,8 +1,14 @@
+import {
+  DEFAULT_MIN_GRAMS,
+  DEFAULT_MIN_STOCK_GRAMS,
+  DEFAULT_MIN_STOCK_UNITS,
+  PRODUCT_CATEGORIES,
+  type ProductCategory,
+} from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
-export type ProductCategory = 'CARNE' | 'ACOMPANHAMENTO' | 'CALDO' | 'BEBIDA' | 'OUTROS';
-
-export const PRODUCT_CATEGORIES: ProductCategory[] = ['CARNE', 'ACOMPANHAMENTO', 'CALDO', 'BEBIDA', 'OUTROS'];
+export { PRODUCT_CATEGORIES };
+export type { ProductCategory };
 
 // Carnes: estoque e pedido em GRAMAS, preço em centavos por kg.
 // Demais itens: estoque e pedido em UNIDADES, preço em centavos por unidade.
@@ -58,12 +64,12 @@ export class Product {
       dto.description ?? null,
       isMeat ? 0 : dto.price ?? 0,
       isMeat ? dto.pricePerKg ?? 0 : null,
-      isMeat ? dto.minGrams ?? 300 : null,
+      isMeat ? dto.minGrams ?? DEFAULT_MIN_GRAMS : null,
       dto.category,
       isMeat,
       true,
-      dto.stock ?? 0,
-      dto.minStock ?? (isMeat ? 10000 : 10),
+      Math.max(0, dto.stock ?? 0),
+      dto.minStock ?? (isMeat ? DEFAULT_MIN_STOCK_GRAMS : DEFAULT_MIN_STOCK_UNITS),
       new Date(),
       new Date(),
     );
@@ -92,6 +98,11 @@ export class Product {
 
   isLowStock(): boolean {
     return this.stock < this.minStock;
+  }
+
+  // Pedido mínimo de carne (gramas); itens por unidade não têm mínimo
+  getMinOrderQuantity(): number {
+    return this.isMeat ? this.minGrams ?? DEFAULT_MIN_GRAMS : 1;
   }
 
   // Snapshot de preço usado no pedido: centavos por kg (carne) ou por unidade

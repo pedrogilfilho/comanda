@@ -1,8 +1,8 @@
+import { MAX_INSTALLMENTS, PAYMENT_METHODS, type PaymentMethod } from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
-export type PaymentMethod = 'DINHEIRO' | 'PIX' | 'DEBITO' | 'CREDITO';
-export const PAYMENT_METHODS: PaymentMethod[] = ['DINHEIRO', 'PIX', 'DEBITO', 'CREDITO'];
-export const MAX_INSTALLMENTS = 12;
+export { MAX_INSTALLMENTS, PAYMENT_METHODS };
+export type { PaymentMethod };
 
 export type AccountPayment = {
   method: PaymentMethod;

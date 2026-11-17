@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { DEFAULT_PASSWORD } from '@comanda/shared';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { AuditLog } from 'src/domain/entities/audit-log/audit-log.entity';
@@ -12,12 +13,12 @@ export class ResetPasswordUsecase {
     private readonly auditLogRepository: AuditLogRepository,
   ) {}
 
-  // Admin reseta a senha de um usuário para o padrão "123" (troca obrigatória no próximo login)
+  // Admin reseta a senha de um usuário para a padrão (troca obrigatória no próximo login)
   async execute(userId: string, actor: string): Promise<{ success: boolean }> {
     const user = await this.userRepository.findById(userId);
     if (!user) throw new NotFoundException('Usuário não encontrado');
 
-    const hashed = await this.hashingService.hash('123');
+    const hashed = await this.hashingService.hash(DEFAULT_PASSWORD);
     user.updatePassword(hashed);
     user.requirePasswordChange();
     await this.userRepository.update(user);

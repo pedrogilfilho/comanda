@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AppError } from 'src/shared/errors/app-error';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { TwoFactorService } from 'src/infra/services/two-factor/two-factor.service';
 import { JwtService } from 'src/infra/services/jwt/jwt.service';
@@ -21,22 +22,22 @@ export class VerifyTwoFactorUsecase {
     try {
       challenge = this.jwtService.verifyChallenge(challengeToken);
     } catch {
-      throw new UnauthorizedException('O tempo para digitar o código acabou. Entre com usuário e senha de novo.');
+      throw AppError.unauthorized('CHALLENGE_EXPIRED', 'O tempo para digitar o código acabou. Entre com usuário e senha de novo.');
     }
-    if (challenge.step !== 'verify') throw new UnauthorizedException('Etapa de login inválida. Entre de novo.');
+    if (challenge.step !== 'verify') throw AppError.unauthorized('CHALLENGE_EXPIRED', 'Etapa de login inválida. Entre de novo.');
 
     const user = await this.userRepository.findById(challenge.userId);
     if (!user || !user.getActive() || !user.getTwoFactorEnabled()) {
-      throw new UnauthorizedException('Não foi possível concluir o login. Entre de novo.');
+      throw AppError.unauthorized('CHALLENGE_EXPIRED', 'Não foi possível concluir o login. Entre de novo.');
     }
 
     const locked = this.twoFactorService.minutesLocked(user.getId());
-    if (locked > 0) throw new BadRequestException(`Muitas tentativas erradas. Tente de novo em ${locked} min.`);
+    if (locked > 0) throw AppError.badRequest('TWO_FACTOR_LOCKED', `Muitas tentativas erradas. Tente de novo em ${locked} min.`);
 
     const match = this.twoFactorService.matchCode(user.getTwoFactorSecret(), user.getTwoFactorRecoveryCodes(), code);
     if (!match) {
       this.twoFactorService.registerFailure(user.getId());
-      throw new BadRequestException('Código inválido');
+      throw AppError.badRequest('TWO_FACTOR_INVALID', 'Código inválido');
     }
     this.twoFactorService.clearFailures(user.getId());
 

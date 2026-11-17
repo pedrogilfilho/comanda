@@ -1,4 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { TABLE_IDENTIFIER_MAX_LENGTH } from '@comanda/shared';
+import { AppError } from 'src/shared/errors/app-error';
 import { TableRepository } from 'src/domain/repositories/table.repository.interface';
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { Table } from 'src/domain/entities/table/table.entity';
@@ -16,16 +18,18 @@ export class OpenTableUsecase {
     actor: string,
   ): Promise<{ id: string; message: string }> {
     const identifier = String(dto.identifier ?? '').trim();
-    if (!identifier) throw new BadRequestException('Informe o número ou identificador da mesa');
-    if (identifier.length > 30) throw new BadRequestException('Identificador muito longo (máximo 30 caracteres)');
+    if (!identifier) throw AppError.badRequest('VALIDATION', 'Informe o número ou identificador da mesa');
+    if (identifier.length > TABLE_IDENTIFIER_MAX_LENGTH) {
+      throw AppError.badRequest('VALIDATION', `Identificador muito longo (máximo ${TABLE_IDENTIFIER_MAX_LENGTH} caracteres)`);
+    }
     const clientName = dto.clientName?.trim() || null;
 
     const existing = await this.tableRepository.findByIdentifier(identifier);
     let tableId: string;
 
     if (existing) {
-      if (existing.getStatus() === 'OCCUPIED') {
-        throw new BadRequestException(`A mesa ${identifier} já está ocupada`);
+      if (existing.isOpen()) {
+        throw AppError.badRequest('TABLE_ALREADY_OPEN', `A mesa ${identifier} já está ocupada`);
       }
       existing.occupy(clientName);
       await this.tableRepository.update(existing);

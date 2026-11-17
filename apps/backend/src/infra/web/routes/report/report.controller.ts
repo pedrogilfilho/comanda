@@ -1,12 +1,13 @@
-import { Controller, Get, Query, Req, UseGuards, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { AuthGuard } from 'src/infra/web/auth/auth.guard';
+import { Controller, Get, Query } from '@nestjs/common';
 import { GetReportsUsecase } from 'src/usecases/report/get-reports/get-reports.usecase';
 import { ListLogsUsecase } from 'src/usecases/report/list-logs/list-logs.usecase';
 import { ListClosedAccountsUsecase } from 'src/usecases/report/list-closed-accounts/list-closed-accounts.usecase';
+import { Roles } from 'src/infra/web/auth/decorators/roles.decorator';
+import { AppError } from 'src/shared/errors/app-error';
 import { Utils } from 'src/shared/utils/utils';
+import { DateRangeDto, LogsQueryDto } from './dto/report.dto';
 
 @Controller()
-@UseGuards(AuthGuard)
 export class ReportController {
   constructor(
     private readonly getReportsUsecase: GetReportsUsecase,
@@ -14,34 +15,30 @@ export class ReportController {
     private readonly listClosedAccountsUsecase: ListClosedAccountsUsecase,
   ) {}
 
-  private ensureRole(req: any, roles: string[]) {
-    if (!roles.includes(req.role)) throw new ForbiddenException('Você não tem permissão para acessar esta área');
-  }
-
-  private range(from?: string, to?: string) {
+  private range({ from, to }: DateRangeDto) {
     const r = Utils.dayRangeBrt(from, to);
-    if (!r) throw new BadRequestException('Período inválido. Use datas no formato AAAA-MM-DD e a data inicial antes da final.');
+    if (!r) throw AppError.badRequest('VALIDATION', 'Período inválido. Use datas no formato AAAA-MM-DD e a data inicial antes da final.');
     return r;
   }
 
+  @Roles('ADMIN', 'GERENTE')
   @Get('reports')
-  async reports(@Req() req: any, @Query('from') from?: string, @Query('to') to?: string) {
-    this.ensureRole(req, ['ADMIN', 'GERENTE']);
-    const r = this.range(from, to);
+  reports(@Query() query: DateRangeDto) {
+    const r = this.range(query);
     return this.getReportsUsecase.execute(r.from, r.to);
   }
 
+  @Roles('ADMIN', 'GERENTE')
   @Get('closed-accounts')
-  async closedAccounts(@Req() req: any, @Query('from') from?: string, @Query('to') to?: string) {
-    this.ensureRole(req, ['ADMIN', 'GERENTE']);
-    const r = this.range(from, to);
+  closedAccounts(@Query() query: DateRangeDto) {
+    const r = this.range(query);
     return this.listClosedAccountsUsecase.execute(r.from, r.to);
   }
 
+  @Roles('ADMIN')
   @Get('logs')
-  async logs(@Req() req: any, @Query('from') from?: string, @Query('to') to?: string, @Query('action') action?: string) {
-    this.ensureRole(req, ['ADMIN']);
-    const r = this.range(from, to);
-    return this.listLogsUsecase.execute(r.from, r.to, action?.trim() || undefined);
+  logs(@Query() query: LogsQueryDto) {
+    const r = this.range(query);
+    return this.listLogsUsecase.execute(r.from, r.to, query.action);
   }
 }

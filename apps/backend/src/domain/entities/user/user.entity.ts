@@ -1,14 +1,8 @@
+import { TWO_FACTOR_REQUIRED_ROLES, USER_DELETE_GRACE_DAYS, USER_ROLES, type UserRole } from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
-export type UserRole = 'ADMIN' | 'GERENTE' | 'GARCOM' | 'COZINHA';
-
-export const USER_ROLES: UserRole[] = ['ADMIN', 'GERENTE', 'GARCOM', 'COZINHA'];
-
-// Um usuário só pode ser excluído depois de ficar desativado por este período
-export const USER_DELETE_GRACE_DAYS = 30;
-
-// Perfis que são obrigados a usar a verificação em 2 etapas
-export const TWO_FACTOR_REQUIRED_ROLES: UserRole[] = ['ADMIN', 'GERENTE'];
+export { USER_DELETE_GRACE_DAYS, USER_ROLES };
+export type { UserRole };
 
 export type UserCreateDto = {
   username: string;

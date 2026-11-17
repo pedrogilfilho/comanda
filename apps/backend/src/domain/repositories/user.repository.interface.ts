@@ -1,12 +1,12 @@
 import { User } from '../entities/user/user.entity';
 
-export interface UserRepository {
-  create(user: User): Promise<void>;
-  findById(id: string): Promise<User | null>;
-  findByUsername(username: string): Promise<User | null>;
-  findByName(name: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
-  findAll(): Promise<User[]>;
-  update(user: User): Promise<void>;
-  delete(id: string): Promise<void>;
+export abstract class UserRepository {
+  abstract create(user: User): Promise<void>;
+  abstract findById(id: string): Promise<User | null>;
+  abstract findByUsername(username: string): Promise<User | null>;
+  abstract findByName(name: string): Promise<User | null>;
+  abstract findByIds(ids: string[]): Promise<User[]>;
+  abstract findAll(): Promise<User[]>;
+  abstract update(user: User): Promise<void>;
+  abstract delete(id: string): Promise<void>;
 }

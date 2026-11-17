@@ -4,8 +4,10 @@ import { UserRepository } from 'src/domain/repositories/user.repository.interfac
 import { User } from 'src/domain/entities/user/user.entity';
 
 @Injectable()
-export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaUserRepository extends UserRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   private toEntity(raw: any): User {
     return User.with({
@@ -27,7 +29,7 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async create(user: User): Promise<void> {
-    await this.prisma.user.create({
+    await this.prisma.db.user.create({
       data: {
         id: user.getId(),
         username: user.getUsername(),
@@ -48,34 +50,40 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    const raw = await this.prisma.user.findUnique({ where: { id } });
+    const raw = await this.prisma.db.user.findUnique({ where: { id } });
     return raw ? this.toEntity(raw) : null;
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    const raw = await this.prisma.user.findFirst({
+    const raw = await this.prisma.db.user.findFirst({
       where: { username: { equals: username.trim(), mode: 'insensitive' } },
     });
     return raw ? this.toEntity(raw) : null;
   }
 
   async findByName(name: string): Promise<User | null> {
-    const raw = await this.prisma.user.findUnique({ where: { name } });
+    const raw = await this.prisma.db.user.findUnique({ where: { name } });
     return raw ? this.toEntity(raw) : null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const raw = await this.prisma.user.findUnique({ where: { email } });
+    const raw = await this.prisma.db.user.findUnique({ where: { email } });
     return raw ? this.toEntity(raw) : null;
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.prisma.db.user.findMany({ where: { id: { in: ids } } });
+    return rows.map((r: any) => this.toEntity(r));
+  }
+
   async findAll(): Promise<User[]> {
-    const rows = await this.prisma.user.findMany({ orderBy: { createdAt: 'asc' } });
+    const rows = await this.prisma.db.user.findMany({ orderBy: { createdAt: 'asc' } });
     return rows.map((r: any) => this.toEntity(r));
   }
 
   async update(user: User): Promise<void> {
-    await this.prisma.user.update({
+    await this.prisma.db.user.update({
       where: { id: user.getId() },
       data: {
         name: user.getName(),
@@ -93,6 +101,6 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await this.prisma.db.user.delete({ where: { id } });
   }
 }

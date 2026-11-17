@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { serviceFee, type TableStatus } from '@comanda/shared';
 import { TableRepository } from 'src/domain/repositories/table.repository.interface';
 import { OrderRepository } from 'src/domain/repositories/order.repository.interface';
 
@@ -6,11 +7,14 @@ export interface TableListItem {
   id: string;
   identifier: string;
   capacity: number;
-  status: string;
+  status: TableStatus;
   clientName: string | null;
   openedAt: Date;
   subtotal: number; // soma dos pedidos ativos (centavos, sem taxa)
-  pendingOrders: number; // pedidos ainda não entregues
+  serviceFee: number;
+  total: number; // com taxa
+  inKitchen: number; // pedidos ainda sendo preparados (impedem fechar a conta)
+  undelivered: number; // pedidos ainda não entregues (inclui prontos)
 }
 
 @Injectable()
@@ -21,13 +25,12 @@ export class ListTablesUsecase {
   ) {}
 
   async execute(): Promise<TableListItem[]> {
-    const [tables, activeOrders] = await Promise.all([
-      this.tableRepository.findAll(),
-      this.orderRepository.findAllActive(),
-    ]);
+    const [tables, activeOrders] = await Promise.all([this.tableRepository.findAll(), this.orderRepository.findAllActive()]);
 
     return tables.map((t) => {
       const orders = activeOrders.filter((o) => o.getTableId() === t.getId());
+      const subtotal = orders.reduce((s, o) => s + o.getTotalAmount(), 0);
+      const fee = serviceFee(subtotal);
       return {
         id: t.getId(),
         identifier: t.getIdentifier(),
@@ -35,8 +38,11 @@ export class ListTablesUsecase {
         status: t.getStatus(),
         clientName: t.getClientName(),
         openedAt: t.getOpenedAt() ?? t.getUpdatedAt(),
-        subtotal: orders.reduce((s, o) => s + o.getTotalAmount(), 0),
-        pendingOrders: orders.filter((o) => o.getStatus() !== 'DELIVERED').length,
+        subtotal,
+        serviceFee: fee,
+        total: subtotal + fee,
+        inKitchen: orders.filter((o) => o.isInKitchen()).length,
+        undelivered: orders.filter((o) => o.getStatus() !== 'DELIVERED').length,
       };
     });
   }
