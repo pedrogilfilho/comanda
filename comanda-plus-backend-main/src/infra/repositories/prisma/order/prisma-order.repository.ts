@@ -1,0 +1,135 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
+import { OrderRepository } from 'src/domain/repositories/order.repository.interface';
+import { Order } from 'src/domain/entities/order/order.entity';
+import { OrderItem } from 'src/domain/entities/order-item/order-item.entity';
+
+const ACTIVE_STATUSES = ['PENDING', 'PREPARING', 'READY', 'DELIVERED'];
+const KITCHEN_STATUSES = ['PENDING', 'PREPARING', 'READY'];
+
+@Injectable()
+export class PrismaOrderRepository implements OrderRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private toEntity(raw: any): Order {
+    const items = (raw.items ?? []).map((i: any) =>
+      OrderItem.with({
+        id: i.id,
+        productId: i.productId,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        weighed: i.weighed,
+        notes: i.notes,
+      }),
+    );
+    return Order.with({
+      id: raw.id,
+      tableId: raw.tableId,
+      userId: raw.userId,
+      status: raw.status,
+      totalAmount: raw.totalAmount,
+      notes: raw.notes,
+      items,
+      closedAccountId: raw.closedAccountId,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    });
+  }
+
+  async create(order: Order): Promise<void> {
+    await this.prisma.order.create({
+      data: {
+        id: order.getId(),
+        tableId: order.getTableId(),
+        userId: order.getUserId(),
+        status: order.getStatus(),
+        totalAmount: order.getTotalAmount(),
+        notes: order.getNotes(),
+        createdAt: order.getCreatedAt(),
+        updatedAt: order.getUpdatedAt(),
+        items: {
+          create: order.getItems().map((i) => ({
+            id: i.getId(),
+            productId: i.getProductId(),
+            quantity: i.getQuantity(),
+            unitPrice: i.getUnitPrice(),
+            weighed: i.getWeighed(),
+            notes: i.getNotes(),
+          })),
+        },
+      },
+    });
+  }
+
+  async findById(id: string): Promise<Order | null> {
+    const raw = await this.prisma.order.findUnique({ where: { id }, include: { items: true } });
+    return raw ? this.toEntity(raw) : null;
+  }
+
+  async findByTableId(tableId: string): Promise<Order[]> {
+    const rows = await this.prisma.order.findMany({
+      where: { tableId, status: { in: ACTIVE_STATUSES } },
+      include: { items: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r: any) => this.toEntity(r));
+  }
+
+  async findAllActive(): Promise<Order[]> {
+    const rows = await this.prisma.order.findMany({
+      where: { status: { in: ACTIVE_STATUSES } },
+      include: { items: true },
+    });
+    return rows.map((r: any) => this.toEntity(r));
+  }
+
+  async findActiveForKitchen(): Promise<Order[]> {
+    const rows = await this.prisma.order.findMany({
+      where: { status: { in: KITCHEN_STATUSES } },
+      include: { items: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r: any) => this.toEntity(r));
+  }
+
+  async findClosedBetween(from: Date, to: Date): Promise<Order[]> {
+    const rows = await this.prisma.order.findMany({
+      where: { status: 'CLOSED', updatedAt: { gte: from, lte: to } },
+      include: { items: true },
+    });
+    return rows.map((r: any) => this.toEntity(r));
+  }
+
+  async findByClosedAccountIds(ids: string[]): Promise<Order[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.prisma.order.findMany({
+      where: { closedAccountId: { in: ids } },
+      include: { items: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((r: any) => this.toEntity(r));
+  }
+
+  async countByUserId(userId: string): Promise<number> {
+    return this.prisma.order.count({ where: { userId } });
+  }
+
+  async update(order: Order): Promise<void> {
+    await this.prisma.order.update({
+      where: { id: order.getId() },
+      data: {
+        status: order.getStatus(),
+        totalAmount: order.getTotalAmount(),
+        notes: order.getNotes(),
+        updatedAt: order.getUpdatedAt(),
+      },
+    });
+  }
+
+  async closeByTableId(tableId: string, closedAccountId: string): Promise<void> {
+    await this.prisma.order.updateMany({
+      where: { tableId, status: { in: ACTIVE_STATUSES } },
+      data: { status: 'CLOSED', closedAccountId, updatedAt: new Date() },
+    });
+  }
+}
