@@ -15,6 +15,7 @@ import { ProductController } from './product.controller';
     RemoveProductUsecase,
     AdjustStockUsecase,
     UpdateProductUsecase,
+    InventoryUsecase,
   ],
 })
 export class ProductModule {}

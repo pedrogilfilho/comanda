@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-11-18-cardapio-estoque-salao-design.md`
 
 ## Global Constraints
+
 - Todo texto de tela e de log em pt-BR.
 - Rotas novas só para `@Roles('ADMIN')`.
 - Estoque: gramas para carne (`isMeat`), unidades para o resto; a tela mostra kg para carne.
@@ -21,6 +22,7 @@
 - Rodar no fim: `npm run lint`, `npm run typecheck` (ou `tsc` dos workspaces), `npm test`, `npm run format:check`.
 
 ## Review Focus
+
 - Inventário com um item inexistente/removido no meio → nada é gravado (rollback). Teste na Task 2.
 - Inventário sem nenhuma alteração (todos iguais ao atual) → 400 "Nenhum item mudou", nada gravado. Teste na Task 2.
 - Edição com nome igual ao de outro produto → 400; com o próprio nome (só mudou o preço) → aceita. Teste na Task 1.
@@ -32,6 +34,7 @@
 ### Task 1: Editar produto (backend)
 
 **Files:**
+
 - Modify: `apps/backend/src/domain/entities/product/product.entity.ts` (método `edit`)
 - Create: `apps/backend/src/usecases/product/update/update-product.usecase.ts`
 - Modify: `apps/backend/src/infra/web/routes/product/dto/product.dto.ts` (`UpdateProductDto`)
@@ -40,6 +43,7 @@
 - Test: `apps/backend/test/update-product.test.ts`
 
 **Interfaces:**
+
 - Produces: `Product.edit(dto: { name: string; description: string | null; category: ProductCategory; price?: number; pricePerKg?: number; minGrams?: number }): void` — atualiza campos e `updatedAt`; não toca em `stock`.
 - Produces: `UpdateProductUsecase.execute(id: string, input: UpdateProductInput, actor: string): Promise<{ id: string }>`, onde `UpdateProductInput` = mesmos campos de `CreateProductInput` sem `stock`.
 - Produces: `PATCH /products/:id` (ADMIN, `ParseUUIDPipe`), body `UpdateProductDto` (= `CreateProductDto` sem `stock`).
@@ -58,12 +62,14 @@
 ### Task 2: Inventário (backend)
 
 **Files:**
+
 - Create: `apps/backend/src/usecases/product/inventory/inventory.usecase.ts`
 - Modify: `product.dto.ts` (`InventoryDto`, `InventoryItemDto`), `product.controller.ts`, `product.module.ts`
 - Modify: `packages/shared/src/domain.ts` (`INVENTARIO_FEITO: 'Inventário de estoque'`)
 - Test: `apps/backend/test/inventory.test.ts`
 
 **Interfaces:**
+
 - Produces: `InventoryUsecase.execute(items: { productId: string; stock: number }[], actor: string): Promise<{ changed: number }>`.
 - Produces: `POST /products/inventory` (ADMIN, `HttpCode(200)`), body `{ items: { productId: uuid; stock: int >= 0 }[] }` com `@ValidateNested({ each: true })`, `@Type(() => InventoryItemDto)`, `@ArrayMinSize(1)`. Declarar a rota **antes** de `:id` não é necessário (método POST diferente), mas manter perto de `adjustStock`.
 
@@ -81,12 +87,14 @@
 ### Task 3: Categorias recolhíveis (frontend)
 
 **Files:**
+
 - Create: `apps/frontend/src/components/ui/CategorySections.tsx`
 - Create: `apps/frontend/src/hooks/useOpenCategories.ts`
 - Test: `apps/frontend/src/hooks/useOpenCategories.test.tsx`
 - Modify: `apps/frontend/src/components/features/admin/MenuManager.tsx`, `StockManager.tsx` (trocar o bloco `CATEGORY_ORDER.filter(...).map(...)` pelo componente)
 
 **Interfaces:**
+
 - Produces: `useOpenCategories(storageKey: string): { isOpen(cat: ProductCategory): boolean; toggle(cat): void; openAll(cats: ProductCategory[]): void; closeAll(): void }` — começa tudo fechado; lê/grava `localStorage[storageKey]` como JSON de categorias abertas, cada acesso em try/catch.
 - Produces: `<CategorySections storageKey="menu" | "stock" products={Product[]} renderItem={(p: Product) => ReactNode} idPrefix="menu" | "stock" />` — agrupa por `CATEGORY_ORDER`, pula vazias; cabeçalho `<button aria-expanded aria-controls>` com `CATEGORY_LABEL[cat]` e `(n)`, ícone `ChevronRight`/`ChevronDown`; botões "Abrir todas"/"Fechar todas" (`Button size="sm" variant="secondary"`) acima.
 
@@ -99,10 +107,12 @@
 ### Task 4: Editar produto (frontend)
 
 **Files:**
+
 - Modify: `apps/frontend/src/services/products.ts` (`updateProduct`)
 - Modify: `apps/frontend/src/components/features/admin/MenuManager.tsx`
 
 **Interfaces:**
+
 - Consumes: `PATCH /products/:id` da Task 1.
 - Produces: `updateProduct(id: string, data: Omit<Parameters<typeof createProduct>[0], 'stock'>) => http.patch<{ id: string }>(...)`.
 
@@ -113,12 +123,14 @@
 ### Task 5: Ajuste sem contagem e inventário (frontend)
 
 **Files:**
+
 - Modify: `apps/frontend/src/services/products.ts` (`saveInventory`)
 - Create: `apps/frontend/src/components/features/admin/InventoryDialog.tsx`
 - Create: `apps/frontend/src/components/features/admin/inventory.ts` + `inventory.test.ts`
 - Modify: `apps/frontend/src/components/features/admin/StockManager.tsx`
 
 **Interfaces:**
+
 - Consumes: `POST /products/inventory` da Task 2.
 - Produces: `saveInventory(items: { productId: string; stock: number }[]) => http.post<{ changed: number }>('/products/inventory', { items })`.
 - Produces: `parseCount(text: string, isMeat: boolean): number | null` (kg com vírgula → gramas arredondadas; unidades só inteiras ≥ 0; vazio/ inválido → `null`) e `changedItems(products: Product[], values: Record<string, string>): { productId: string; stock: number }[] | { invalid: string[] }` em `inventory.ts`.
@@ -133,6 +145,7 @@
 ### Task 6: Menu do admin e verificação
 
 **Files:**
+
 - Modify: `apps/frontend/src/constants/index.ts` (`NAV_BY_ROLE.ADMIN`)
 - Modify: vault `Neuronios/Comanda/Comanda Plus - Parte 2 estrutura.md` (nota da nova ordem e tela inicial do admin) e um neurônio novo ou atualização do Comanda Plus, nos 4 passos do CLAUDE.md.
 

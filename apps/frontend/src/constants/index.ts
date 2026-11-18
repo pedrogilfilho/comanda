@@ -21,7 +21,15 @@ const ITEMS = {
 
 // Menu de cada perfil; o primeiro item é a tela inicial
 export const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
-  ADMIN: [ITEMS.usuarios, ITEMS.cardapio, ITEMS.estoque, ITEMS.contas, ITEMS.relatorios, ITEMS.logs],
+  ADMIN: [
+    ITEMS.mesas,
+    ITEMS.estoque,
+    ITEMS.cardapio,
+    ITEMS.contas,
+    ITEMS.relatorios,
+    ITEMS.usuarios,
+    ITEMS.logs,
+  ],
   GERENTE: [ITEMS.mesas, ITEMS.contas, ITEMS.relatorios],
   GARCOM: [ITEMS.mesas],
   COZINHA: [ITEMS.cozinha],
