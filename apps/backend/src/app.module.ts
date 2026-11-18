@@ -11,6 +11,7 @@ import { ProductModule } from './infra/web/routes/product/product.module';
 import { TableModule } from './infra/web/routes/table/table.module';
 import { OrderModule } from './infra/web/routes/order/order.module';
 import { ReportModule } from './infra/web/routes/report/report.module';
+import { SettingsModule } from './infra/web/routes/settings/settings.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ReportModule } from './infra/web/routes/report/report.module';
     TableModule,
     OrderModule,
     ReportModule,
+    SettingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

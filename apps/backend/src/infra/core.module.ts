@@ -7,10 +7,12 @@ import { UserRepository } from 'src/domain/repositories/user.repository.interfac
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.repository.interface';
 import { StockMovementRepository } from 'src/domain/repositories/stock-movement.repository.interface';
+import { SettingsRepository } from 'src/domain/repositories/settings.repository.interface';
 import { PrismaModule } from './services/database/prisma/prisma.module';
 import { PrismaOrderRepository } from './repositories/prisma/order/prisma-order.repository';
 import { PrismaProductRepository } from './repositories/prisma/product/prisma-product.repository';
 import { PrismaTableRepository } from './repositories/prisma/table/prisma-table.repository';
+import { PrismaSettingsRepository } from './repositories/prisma/settings/prisma-settings.repository';
 import { PrismaUserRepository } from './repositories/prisma/user/prisma-user.repository';
 import { PrismaAuditLogRepository } from './repositories/prisma/audit-log/prisma-audit-log.repository';
 import { PrismaClosedAccountRepository } from './repositories/prisma/closed-account/prisma-closed-account.repository';
@@ -28,6 +30,7 @@ const repositories = [
   { provide: AuditLogRepository, useClass: PrismaAuditLogRepository },
   { provide: ClosedAccountRepository, useClass: PrismaClosedAccountRepository },
   { provide: StockMovementRepository, useClass: PrismaStockMovementRepository },
+  { provide: SettingsRepository, useClass: PrismaSettingsRepository },
 ];
 
 const services = [

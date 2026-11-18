@@ -8,6 +8,10 @@ import { UserRepository } from 'src/domain/repositories/user.repository.interfac
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
 import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.repository.interface';
 import { StockMovementRepository } from 'src/domain/repositories/stock-movement.repository.interface';
+import {
+  SettingsRepository,
+  type RestaurantSettings,
+} from 'src/domain/repositories/settings.repository.interface';
 import { Order } from 'src/domain/entities/order/order.entity';
 import { Product } from 'src/domain/entities/product/product.entity';
 import { Table } from 'src/domain/entities/table/table.entity';
@@ -272,5 +276,21 @@ export class InMemoryStockMovementRepository extends StockMovementRepository imp
   }
   async create(m: StockMovement) {
     this.items.push(m);
+  }
+}
+
+export class InMemorySettingsRepository extends SettingsRepository implements Snapshotable {
+  value: RestaurantSettings | null = null;
+  snapshot() {
+    const copy = this.value;
+    return () => {
+      this.value = copy;
+    };
+  }
+  async get() {
+    return this.value ?? { totalTables: 30 };
+  }
+  async save(settings: RestaurantSettings) {
+    this.value = { ...settings };
   }
 }
