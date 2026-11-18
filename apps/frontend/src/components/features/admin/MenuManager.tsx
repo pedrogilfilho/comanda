@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_MIN_GRAMS } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
-import { createProduct, removeProduct } from '@/services/products';
+import { createProduct, removeProduct, updateProduct } from '@/services/products';
 import type { Product, ProductCategory } from '@/types/api';
 import { money, weight, toCents } from '@/lib/format';
 import Badge from '@/components/ui/Badge';
@@ -36,11 +36,34 @@ const EMPTY = {
 export default function MenuManager({ products, loading, onChange }: MenuManagerProps) {
   const [form, setForm] = useState(EMPTY);
   const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [toRemove, setToRemove] = useState<Product | null>(null);
   const [removing, setRemoving] = useState(false);
 
   const isMeat = form.category === 'CARNE';
+  const showForm = showCreate || editing !== null;
+
+  // Centavos → "178,00" para o campo de preço
+  const toInput = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
+
+  const openEdit = (p: Product) => {
+    setEditing(p);
+    setForm({
+      name: p.name,
+      category: p.category,
+      description: p.description ?? '',
+      price: toInput(p.isMeat ? (p.pricePerKg ?? 0) : p.price),
+      minGrams: String(p.minGrams ?? DEFAULT_MIN_GRAMS),
+      stock: '',
+    });
+  };
+
+  const closeForm = () => {
+    setShowCreate(false);
+    setEditing(null);
+    setForm(EMPTY);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +89,24 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
       : 0;
 
     setSaving(true);
+    if (editing) {
+      try {
+        await updateProduct(editing.id, {
+          name: form.name.trim(),
+          description: form.description.trim() || undefined,
+          category: form.category,
+          ...(isMeat ? { pricePerKg: cents, minGrams } : { price: cents }),
+        });
+        toast.success(`${form.name.trim()} atualizado`);
+        closeForm();
+        onChange();
+      } catch (err) {
+        toast.error(errorMessage(err, 'Erro ao salvar o item'));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     try {
       await createProduct({
         name: form.name.trim(),
@@ -75,8 +116,7 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
         stock,
       });
       toast.success(`${form.name.trim()} adicionado ao cardápio`);
-      setForm(EMPTY);
-      setShowCreate(false);
+      closeForm();
       onChange();
     } catch (err) {
       toast.error(errorMessage(err, 'Erro ao adicionar item'));
@@ -143,6 +183,14 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
                   {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}
                 </span>
                 <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => openEdit(p)}
+                  aria-label={`Editar ${p.name}`}
+                >
+                  Editar
+                </Button>
+                <Button
                   variant="danger"
                   size="sm"
                   onClick={() => setToRemove(p)}
@@ -156,8 +204,12 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
         />
       )}
 
-      {showCreate && (
-        <Dialog title="Adicionar item ao cardápio" onClose={() => setShowCreate(false)} dismissible={!saving}>
+      {showForm && (
+        <Dialog
+          title={editing ? 'Editar item' : 'Adicionar item ao cardápio'}
+          onClose={closeForm}
+          dismissible={!saving}
+        >
           <form onSubmit={handleCreate} className="space-y-4">
             <Field label="Categoria" htmlFor="item-category">
               <Select
@@ -165,11 +217,16 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as ProductCategory }))}
               >
-                <option value="CARNE">Carne (vendida por peso)</option>
-                <option value="ACOMPANHAMENTO">Acompanhamento</option>
-                <option value="CALDO">Caldo</option>
-                <option value="BEBIDA">Bebida</option>
-                <option value="OUTROS">Outros</option>
+                {/* Na edição, carne continua carne e item por unidade não vira carne */}
+                {(!editing || editing.isMeat) && <option value="CARNE">Carne (vendida por peso)</option>}
+                {(!editing || !editing.isMeat) && (
+                  <>
+                    <option value="ACOMPANHAMENTO">Acompanhamento</option>
+                    <option value="CALDO">Caldo</option>
+                    <option value="BEBIDA">Bebida</option>
+                    <option value="OUTROS">Outros</option>
+                  </>
+                )}
               </Select>
             </Field>
             <Field label="Nome" htmlFor="item-name">
@@ -207,25 +264,27 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
                 </Field>
               )}
             </div>
-            <Field
-              label={isMeat ? 'Estoque inicial (kg)' : 'Estoque inicial (unidades)'}
-              htmlFor="item-stock"
-              optional
-            >
-              <Input
-                id="item-stock"
-                inputMode="decimal"
-                value={form.stock}
-                onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-                placeholder="0"
-              />
-            </Field>
+            {!editing && (
+              <Field
+                label={isMeat ? 'Estoque inicial (kg)' : 'Estoque inicial (unidades)'}
+                htmlFor="item-stock"
+                optional
+              >
+                <Input
+                  id="item-stock"
+                  inputMode="decimal"
+                  value={form.stock}
+                  onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+                  placeholder="0"
+                />
+              </Field>
+            )}
             <DialogActions>
-              <Button variant="secondary" onClick={() => setShowCreate(false)} disabled={saving}>
+              <Button variant="secondary" onClick={closeForm} disabled={saving}>
                 Voltar
               </Button>
               <Button type="submit" loading={saving}>
-                Adicionar item
+                {editing ? 'Salvar alterações' : 'Adicionar item'}
               </Button>
             </DialogActions>
           </form>
