@@ -40,7 +40,10 @@ export class CreateOrderUsecase {
     return text || null;
   }
 
-  async execute(input: CreateOrderInput, actor: string): Promise<{ id: string; total: number }> {
+  async execute(
+    input: CreateOrderInput,
+    actor: string,
+  ): Promise<{ id: string; ids: string[]; total: number }> {
     if (!input.items || input.items.length === 0) {
       throw AppError.badRequest('VALIDATION', 'O pedido precisa ter ao menos um item');
     }
@@ -84,12 +87,23 @@ export class CreateOrderUsecase {
         notes: CreateOrderUsecase.cleanNotes(item.notes),
       });
     });
-    const order = Order.create({ tableId: input.tableId, userId: input.userId, items: orderItems });
+    // Bebida não passa pela cozinha: vai num pedido próprio que já nasce entregue
+    const isDrink = (i: OrderItem) => products.get(i.getProductId())!.getCategory() === 'BEBIDA';
+    const base = { tableId: input.tableId, userId: input.userId };
+    const food = orderItems.filter((i) => !isDrink(i));
+    const drinks = orderItems.filter(isDrink);
+    const orders = [
+      ...(food.length ? [Order.create({ ...base, items: food })] : []),
+      ...(drinks.length ? [Order.create({ ...base, items: drinks, status: 'DELIVERED' })] : []),
+    ];
+    const orderOf = new Map(
+      orders.flatMap((o) => o.getItems().map((i) => [i.getProductId(), o.getId()] as const)),
+    );
 
     // 4. Pedido + baixa de estoque numa transação só. A baixa é condicional no banco:
     //    se outro pedido levou o estoque no meio do caminho, tudo é desfeito.
     await this.uow.run(async () => {
-      await this.orderRepository.create(order);
+      for (const o of orders) await this.orderRepository.create(o);
       for (const [productId, quantity] of requested) {
         const product = products.get(productId)!;
         const before = await this.productRepository.decrementStock(productId, quantity);
@@ -106,7 +120,7 @@ export class CreateOrderUsecase {
             before,
             after: before - quantity,
             type: 'VENDA',
-            orderId: order.getId(),
+            orderId: orderOf.get(productId)!,
             actor,
           }),
         );
@@ -120,7 +134,11 @@ export class CreateOrderUsecase {
       );
     });
 
-    return { id: order.getId(), total: order.getTotalAmount() };
+    return {
+      id: orders[0].getId(),
+      ids: orders.map((o) => o.getId()),
+      total: orders.reduce((sum, o) => sum + o.getTotalAmount(), 0),
+    };
   }
 
   private summary(items: OrderItem[], products: Map<string, Product>): string {
