@@ -50,7 +50,7 @@
 - [ ] TablesView: remover o botão "N mesas" e o diálogo de total.
 
 ### Task 3: Tema escuro
-- [ ] Tokens escuros: bg `24 20 16`, surface `34 29 23`, surface-2 `46 39 31`, ink `243 236 226`, ink-muted `190 176 160`, accent `214 120 72`, accent-strong `166 74 30`, success `120 170 110`, warning `214 160 70`, danger `225 110 95`. Mais `color-scheme: dark`.
+- [ ] Tokens escuros: bg `24 20 16`, surface `34 29 23`, surface-2 `46 39 31`, ink `243 236 226`, ink-muted `190 176 160`, accent `214 120 72`, accent-strong `232 140 92` (Ruling: o `166 74 30` reprovava contraste como texto; o botão passou a usar o token `on-accent`, escuro no tema escuro), success `120 170 110`, warning `214 160 70`, danger `225 110 95`. Mais `color-scheme: dark`.
 - [ ] Script inline no `<head>` do layout.
 - [ ] Trocar o `bg-white` do `Field` por `bg-surface`.
 
