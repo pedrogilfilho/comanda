@@ -18,6 +18,7 @@ export type OrderCreateDto = {
   userId: string;
   items: OrderItem[];
   notes?: string | null;
+  status?: 'PENDING' | 'DELIVERED'; // bebida já nasce entregue
 };
 
 export type OrderWithDto = {
@@ -41,7 +42,7 @@ export class Order {
     private status: OrderStatus,
     private totalAmount: number,
     private notes: string | null,
-    private readonly items: OrderItem[],
+    private items: OrderItem[],
     private readonly createdAt: Date,
     private updatedAt: Date,
     private readonly closedAccountId: string | null = null,
@@ -53,7 +54,7 @@ export class Order {
       Utils.generateUUID(),
       dto.tableId,
       dto.userId,
-      'PENDING',
+      dto.status ?? 'PENDING',
       total,
       dto.notes ?? null,
       dto.items,
@@ -119,6 +120,16 @@ export class Order {
   updateStatus(status: OrderStatus): void {
     if (!canTransition(this.status, status)) throw new InvalidOrderTransition(this.status, status);
     this.status = status;
+    this.updatedAt = new Date();
+  }
+
+  // Diminui (ou tira, com 0) um item e recalcula o total; sem itens, o pedido fica cancelado
+  changeItemQuantity(itemId: string, quantity: number): void {
+    this.items = this.items.flatMap((i) =>
+      i.getId() !== itemId ? [i] : quantity > 0 ? [i.withQuantity(quantity)] : [],
+    );
+    this.totalAmount = this.items.reduce((sum, i) => sum + i.getSubtotal(), 0);
+    if (this.items.length === 0) this.status = 'CANCELLED';
     this.updatedAt = new Date();
   }
 }

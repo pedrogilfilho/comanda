@@ -49,7 +49,21 @@ export const CATEGORY_LABEL: Record<ProductCategory, string> = {
   OUTROS: 'Outros',
 };
 
-export type StockMovementType = 'VENDA' | 'ESTORNO' | 'ENTRADA' | 'SAIDA' | 'CONTAGEM';
+export type StockMovementType = 'VENDA' | 'ESTORNO' | 'ENTRADA' | 'SAIDA' | 'CONTAGEM' | 'PERDA';
+
+// Motivo para tirar ou diminuir um item da conta; só a perda não volta ao estoque
+export const ITEM_CHANGE_REASONS = ['LANCADO_A_MAIS', 'LANCADO_ERRADO', 'PERDA'] as const;
+export type ItemChangeReason = (typeof ITEM_CHANGE_REASONS)[number];
+export const ITEM_CHANGE_REASON_LABEL: Record<ItemChangeReason, string> = {
+  LANCADO_A_MAIS: 'Lançado a mais',
+  LANCADO_ERRADO: 'Lançado errado',
+  PERDA: 'Perda',
+};
+export const RETURNS_TO_STOCK: Record<ItemChangeReason, boolean> = {
+  LANCADO_A_MAIS: true,
+  LANCADO_ERRADO: true,
+  PERDA: false,
+};
 
 export type AuditAction =
   | 'USUARIO_CRIADO'
@@ -70,7 +84,9 @@ export type AuditAction =
   | 'ITEM_EDITADO'
   | 'ESTOQUE_AJUSTADO'
   | 'INVENTARIO_FEITO'
-  | 'CONFIG_ALTERADA';
+  | 'CONFIG_ALTERADA'
+  | 'ITEM_TIRADO'
+  | 'ITEM_DIMINUIDO';
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   USUARIO_CRIADO: 'Usuário criado',
@@ -92,4 +108,6 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ESTOQUE_AJUSTADO: 'Estoque ajustado',
   INVENTARIO_FEITO: 'Inventário de estoque',
   CONFIG_ALTERADA: 'Configuração alterada',
+  ITEM_TIRADO: 'Item tirado da conta',
+  ITEM_DIMINUIDO: 'Item diminuído na conta',
 };

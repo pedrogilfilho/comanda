@@ -62,6 +62,11 @@ export class OrderItem {
     return this.notes;
   }
 
+  // Mesmo item (mesmo id) com outra quantidade: para diminuir na conta
+  withQuantity(quantity: number): OrderItem {
+    return new OrderItem(this.id, this.productId, quantity, this.unitPrice, this.weighed, this.notes);
+  }
+
   getSubtotal(): number {
     return itemSubtotal(this.quantity, this.unitPrice, this.weighed);
   }
