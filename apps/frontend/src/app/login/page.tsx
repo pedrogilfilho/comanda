@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { AuthSession, login, verifyTwoFactor, setupTwoFactorDuringLogin, enableTwoFactorDuringLogin } from '@/lib/api/auth'
+import { errorMessage, isApiError, tokenStore } from '@/lib/api/http'
 import PasswordInput from '@/components/ui/PasswordInput'
 import CodeInput from '@/components/auth/CodeInput'
 import TwoFactorSetup from '@/components/auth/TwoFactorSetup'
@@ -28,9 +29,8 @@ export default function LoginPage() {
   const [pendingSession, setPendingSession] = useState<AuthSession | null>(null)
 
   const finishLogin = useCallback((session: AuthSession) => {
-    localStorage.setItem('token', session.accessToken)
-    localStorage.setItem('user', JSON.stringify(session.user))
-    toast.success('Login realizado com sucesso!')
+    // Só o token fica no navegador; o perfil vem sempre do GET /auth/me
+    tokenStore.set(session.accessToken)
     if (typeof session.recoveryCodesLeft === 'number') {
       toast.warning(`Você usou um código de recuperação. Restam ${session.recoveryCodesLeft}. Se perdeu o celular, peça ao administrador para resetar a verificação em 2 etapas.`, { duration: 10000 })
     }
@@ -58,8 +58,8 @@ export default function LoginPage() {
       setChallengeToken(result.challengeToken)
       setStage(result.status === 'TWO_FACTOR_REQUIRED' ? 'verify' : 'setup')
       setLoading(false)
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao fazer login')
+    } catch (error) {
+      toast.error(errorMessage(error, 'Não foi possível entrar'))
       setLoading(false)
     }
   }
@@ -73,12 +73,12 @@ export default function LoginPage() {
     setLoading(true)
     try {
       finishLogin(await verifyTwoFactor(challengeToken, code))
-    } catch (error: any) {
-      toast.error(error.message || 'Código inválido')
+    } catch (error) {
+      toast.error(errorMessage(error, 'Código inválido'))
       setCode('')
       setLoading(false)
       // Token provisório venceu: volta para usuário e senha
-      if (/tempo|entre de novo/i.test(error.message || '')) backToCredentials()
+      if (isApiError(error, 'CHALLENGE_EXPIRED')) backToCredentials()
     }
   }
 

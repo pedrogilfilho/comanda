@@ -3,19 +3,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { TwoFactorStatus, getTwoFactorStatus, setupTwoFactor, enableTwoFactor, disableTwoFactor } from '@/lib/api/auth'
 import TwoFactorSetup from '@/components/auth/TwoFactorSetup'
 import CodeInput from '@/components/auth/CodeInput'
-
-function currentUsername(): string | undefined {
-  try {
-    return JSON.parse(localStorage.getItem('user') || 'null')?.username ?? undefined
-  } catch {
-    return undefined
-  }
-}
+import { useSession } from '@/hooks/useSession'
 
 export default function SecurityPage() {
+  const { user } = useSession()
   const [status, setStatus] = useState<TwoFactorStatus | null>(null)
   const [mode, setMode] = useState<'view' | 'setup' | 'disable'>('view')
   const [code, setCode] = useState('')
@@ -25,8 +20,8 @@ export default function SecurityPage() {
   const load = useCallback(async () => {
     try {
       setStatus(await getTwoFactorStatus())
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar a segurança da conta')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao carregar a segurança da conta'))
     }
   }, [])
 
@@ -49,8 +44,8 @@ export default function SecurityPage() {
       toast.success('Verificação em 2 etapas desativada')
       backToView()
       load()
-    } catch (e: any) {
-      toast.error(e.message || 'Não foi possível desativar')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Não foi possível desativar'))
       setCode('')
     } finally {
       setBusy(false)
@@ -76,7 +71,7 @@ export default function SecurityPage() {
         ) : mode === 'setup' ? (
           <TwoFactorSetup
             start={setupTwoFactor}
-            username={currentUsername()}
+            username={user.username}
             confirm={enableTwoFactor}
             onCancel={backToView}
             onFinish={() => { backToView(); load() }}

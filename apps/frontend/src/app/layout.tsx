@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
-import { AppInitializer } from '@/components/AppInitializer'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -23,7 +22,6 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="bg-[#faf6ef] text-[#2a1f14]">
-        <AppInitializer />
         {children}
         <Toaster />
       </body>

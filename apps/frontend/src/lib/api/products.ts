@@ -1,6 +1,7 @@
-import { fetchWithAuth } from './config'
+import type { ProductCategory } from '@comanda/shared'
+import { http } from './http'
 
-export type ProductCategory = 'CARNE' | 'ACOMPANHAMENTO' | 'CALDO' | 'BEBIDA' | 'OUTROS'
+export type { ProductCategory }
 
 export interface Product {
   id: string
@@ -17,11 +18,11 @@ export interface Product {
   lowStock: boolean
 }
 
-export async function listProducts(): Promise<Product[]> {
-  return fetchWithAuth('/products', { method: 'GET' })
-}
+export type StockAdjustment = 'ENTRADA' | 'SAIDA' | 'CONTAGEM'
 
-export async function createProduct(data: {
+export const listProducts = () => http.get<Product[]>('/products')
+
+export const createProduct = (data: {
   name: string
   description?: string
   category: ProductCategory
@@ -29,14 +30,10 @@ export async function createProduct(data: {
   pricePerKg?: number
   minGrams?: number
   stock?: number
-}): Promise<{ id: string }> {
-  return fetchWithAuth('/products', { method: 'POST', body: JSON.stringify(data) })
-}
+}) => http.post<{ id: string }>('/products', data)
 
-export async function removeProduct(id: string): Promise<{ success: boolean }> {
-  return fetchWithAuth(`/products/${id}`, { method: 'DELETE' })
-}
+export const removeProduct = (id: string) => http.delete<{ success: boolean }>(`/products/${id}`)
 
-export async function adjustStock(id: string, stock: number, reason: string): Promise<{ stock: number }> {
-  return fetchWithAuth(`/products/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ stock, reason }) })
-}
+// stock = novo valor absoluto; o tipo vai para o histórico de movimentações
+export const adjustStock = (id: string, stock: number, type: StockAdjustment, reason: string) =>
+  http.patch<{ stock: number }>(`/products/${id}/stock`, { stock, type, reason })

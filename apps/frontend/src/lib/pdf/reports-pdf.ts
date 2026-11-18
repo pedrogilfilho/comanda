@@ -119,7 +119,7 @@ export async function downloadReportsPdf(data: Reports, from: string, to: string
     startY: y,
     head: [['Forma', 'Pagamentos', 'Valor']],
     body: data.byPayment.length
-      ? data.byPayment.map((m) => [PAYMENT_LABEL[m.method]?.label ?? m.method, String(m.count), money(m.amount)])
+      ? data.byPayment.map((m) => [PAYMENT_LABEL[m.method] ?? m.method, String(m.count), money(m.amount)])
       : empty(3),
     columnStyles: { 1: right, 2: right },
   })
@@ -199,7 +199,7 @@ export async function downloadClosedAccountsPdf(result: ClosedAccountsResult, fr
       ...tableStyle,
       startY: lastY(doc) + 4,
       head: [['Forma de pagamento', 'Pagamentos', 'Valor']],
-      body: s.byPayment.map((m) => [PAYMENT_LABEL[m.method]?.label ?? m.method, String(m.count), money(m.amount)]),
+      body: s.byPayment.map((m) => [PAYMENT_LABEL[m.method] ?? m.method, String(m.count), money(m.amount)]),
       columnStyles: { 1: right, 2: right },
     })
   }
@@ -218,7 +218,7 @@ export async function downloadClosedAccountsPdf(result: ClosedAccountsResult, fr
     const closed = multiDay ? dhm(a.closedAt) : hm(a.closedAt)
     const pay = a.payments.length
       ? a.payments
-          .map((p) => `${PAYMENT_LABEL[p.method]?.label ?? p.method}${p.method === 'CREDITO' && p.installments > 1 ? ` ${p.installments}x` : ''} ${money(p.amount)}`)
+          .map((p) => `${PAYMENT_LABEL[p.method] ?? p.method}${p.method === 'CREDITO' && p.installments > 1 ? ` ${p.installments}x` : ''} ${money(p.amount)}`)
           .join(' + ')
       : 'não registrado'
     const items = a.orders.flatMap((o) =>

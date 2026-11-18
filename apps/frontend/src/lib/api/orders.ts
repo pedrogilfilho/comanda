@@ -1,4 +1,5 @@
-import { fetchWithAuth } from './config'
+import type { OrderStatus } from '@comanda/shared'
+import { http } from './http'
 
 export interface OrderItemView {
   id: string
@@ -13,7 +14,7 @@ export interface OrderItemView {
 
 export interface OrderView {
   id: string
-  status: string
+  status: OrderStatus
   createdAt: string
   items: OrderItemView[]
   subtotal: number
@@ -30,35 +31,20 @@ export interface KitchenOrder {
   id: string
   tableIdentifier: string
   clientName: string | null
-  status: string
+  status: OrderStatus
   createdAt: string
   items: { productName: string; quantity: number; isMeat: boolean; notes: string | null }[]
 }
 
-export async function createOrder(data: {
-  tableId: string
-  items: { productId: string; quantity: number; notes?: string }[]
-}): Promise<{ id: string; total: number }> {
-  return fetchWithAuth('/orders', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
+export type OrderStatusChange = Exclude<OrderStatus, 'PENDING' | 'CLOSED'>
 
-export async function getTableAccount(tableId: string): Promise<TableAccount> {
-  return fetchWithAuth(`/orders/table/${tableId}`, { method: 'GET' })
-}
+export const createOrder = (data: { tableId: string; items: { productId: string; quantity: number; notes?: string }[] }) =>
+  http.post<{ id: string; total: number }>('/orders', data)
 
-export async function listKitchenOrders(): Promise<KitchenOrder[]> {
-  return fetchWithAuth('/orders/kitchen', { method: 'GET' })
-}
+export const getTableAccount = (tableId: string) => http.get<TableAccount>(`/orders/table/${tableId}`)
 
-export async function updateOrderStatus(
-  orderId: string,
-  status: string,
-): Promise<{ success: boolean }> {
-  return fetchWithAuth(`/orders/${orderId}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  })
-}
+export const listKitchenOrders = () => http.get<KitchenOrder[]>('/orders/kitchen')
+
+// Cancelar (status CANCELLED) é só para Gerente e Admin; o backend repõe o estoque
+export const updateOrderStatus = (orderId: string, status: OrderStatusChange, reason?: string) =>
+  http.patch<{ success: boolean }>(`/orders/${orderId}/status`, { status, reason })

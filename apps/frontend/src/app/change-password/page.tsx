@@ -3,40 +3,50 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { changePassword } from '@/lib/api/auth'
+import { PASSWORD_MIN_LENGTH, ROLE_LABEL, passwordProblem } from '@comanda/shared'
+import { changePassword, getMe, type LoggedUser } from '@/lib/api/auth'
+import { errorMessage, tokenStore } from '@/lib/api/http'
 import PasswordInput from '@/components/ui/PasswordInput'
+
+const fieldStyle = (hasError: boolean) => ({
+  background: 'rgba(255,249,242,0.07)',
+  border: hasError ? '1.5px solid #d9534f' : '1.5px solid rgba(255,249,242,0.12)',
+  color: '#faf6ef',
+})
 
 export default function ChangePasswordPage() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<LoggedUser | null>(null)
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user')
-    if (!userStr) {
-      router.push('/login')
+    if (!tokenStore.get()) {
+      router.replace('/login')
       return
     }
-    setUser(JSON.parse(userStr))
+    getMe()
+      .then(setUser)
+      .catch(() => router.replace('/login'))
   }, [router])
 
-  const validatePassword = (password: string): string => {
-    if (!password) return 'Senha é obrigatória'
-    if (password.length < 6) return 'Senha deve ter no mínimo 6 caracteres'
-    if (/^\d+$/.test(password)) return 'Senha não pode conter apenas números (ex: 123456 não é válido)'
-    return ''
-  }
+  // Primeiro acesso: a senha inicial já foi digitada no login, então não pedimos de novo
+  const firstAccess = user?.needsPasswordChange ?? false
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setPasswordError('')
 
-    const validation = validatePassword(newPassword)
-    if (validation) {
-      setPasswordError(validation)
+    if (!firstAccess && !currentPassword) {
+      setPasswordError('Digite a senha atual')
+      return
+    }
+    const problem = passwordProblem(newPassword)
+    if (problem) {
+      setPasswordError(problem)
       return
     }
     if (newPassword !== confirmPassword) {
@@ -46,16 +56,11 @@ export default function ChangePasswordPage() {
 
     setLoading(true)
     try {
-      await changePassword(newPassword)
-
-      // Atualizar user no localStorage
-      const updatedUser = { ...user, needsPasswordChange: false }
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-
-      toast.success('Senha alterada com sucesso!')
-      router.push('/dashboard')
-    } catch (error: any) {
-      setPasswordError(error.message || 'Erro ao alterar senha')
+      await changePassword(newPassword, firstAccess ? undefined : currentPassword)
+      toast.success('Senha alterada')
+      router.replace('/dashboard')
+    } catch (error) {
+      setPasswordError(errorMessage(error, 'Não foi possível alterar a senha'))
       setLoading(false)
     }
   }
@@ -69,12 +74,12 @@ export default function ChangePasswordPage() {
       <div className="text-center mb-10">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4"
              style={{ background: 'rgba(196,92,42,0.15)', border: '1px solid rgba(196,92,42,0.3)' }}>
-          <span className="text-4xl">🔐</span>
+          <span className="text-4xl" aria-hidden>🔐</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-[#faf6ef]" style={{ fontFamily: 'Georgia, serif' }}>
-          Alterar Senha
+          Alterar senha
         </h1>
-        <p className="text-[#8a7060] mt-2 text-sm">Primeira alteração obrigatória</p>
+        <p className="text-[#a08060] mt-2 text-sm">{firstAccess ? 'Troca obrigatória no primeiro acesso' : 'Escolha uma senha nova'}</p>
       </div>
 
       <div className="w-full max-w-sm rounded-2xl p-5 sm:p-6"
@@ -82,64 +87,76 @@ export default function ChangePasswordPage() {
 
         <div className="mb-6 p-4 rounded-xl"
              style={{ background: 'rgba(255,249,242,0.04)', border: '1px solid rgba(255,249,242,0.1)' }}>
-          <p className="text-xs font-medium" style={{ color: '#a08060' }}>Usuário Conectado</p>
+          <p className="text-xs font-medium" style={{ color: '#a08060' }}>Usuário conectado</p>
           <p className="text-lg font-bold text-[#faf6ef] mt-1">{user.name}</p>
-          <p className="text-xs mt-2" style={{ color: '#8a7060' }}>Role: {user.role}</p>
+          <p className="text-xs mt-2" style={{ color: '#a08060' }}>{ROLE_LABEL[user.role] ?? user.role}</p>
         </div>
 
         <div className="mb-6 p-4 rounded-xl"
              style={{ background: 'rgba(61,92,58,0.15)', border: '1px solid rgba(61,92,58,0.3)' }}>
-          <p className="text-sm font-medium text-[#3d5c3a]">📋 Requisitos da Senha</p>
-          <ul className="text-xs mt-2 space-y-1" style={{ color: '#3d5c3a' }}>
-            <li>✓ Mínimo 6 caracteres</li>
-            <li>✓ Não pode ser apenas números (123456 ❌)</li>
-            <li>✓ Pode incluir letras, números e símbolos</li>
+          <p className="text-sm font-medium text-[#9cc298]">Requisitos da senha</p>
+          <ul className="text-xs mt-2 space-y-1" style={{ color: '#9cc298' }}>
+            <li>Pelo menos {PASSWORD_MIN_LENGTH} caracteres</li>
+            <li>Não pode ter só números</li>
+            <li>Pode ter letras, números e símbolos</li>
           </ul>
         </div>
 
         <form onSubmit={handleChangePassword} className="space-y-4">
+          {!firstAccess && (
+            <div>
+              <label htmlFor="current-password" className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
+                Senha atual
+              </label>
+              <PasswordInput
+                id="current-password"
+                placeholder="Digite a senha atual"
+                value={currentPassword}
+                onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError('') }}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style={fieldStyle(!!passwordError)}
+                disabled={loading}
+                autoComplete="current-password"
+              />
+            </div>
+          )}
+
           <div>
-            <label className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
-              Nova Senha *
+            <label htmlFor="new-password" className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
+              Nova senha
             </label>
             <PasswordInput
+              id="new-password"
               placeholder="Digite a nova senha"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setPasswordError('') }}
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style={{
-                background: 'rgba(255,249,242,0.07)',
-                border: passwordError ? '1.5px solid #d9534f' : '1.5px solid rgba(255,249,242,0.12)',
-                color: '#faf6ef'
-              }}
+              style={fieldStyle(!!passwordError)}
               disabled={loading}
               autoComplete="new-password"
             />
           </div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
-              Confirmar Senha *
+            <label htmlFor="confirm-password" className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
+              Confirmar nova senha
             </label>
             <PasswordInput
-              placeholder="Confirme a nova senha"
+              id="confirm-password"
+              placeholder="Repita a nova senha"
               value={confirmPassword}
               onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError('') }}
               className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-              style={{
-                background: 'rgba(255,249,242,0.07)',
-                border: passwordError ? '1.5px solid #d9534f' : '1.5px solid rgba(255,249,242,0.12)',
-                color: '#faf6ef'
-              }}
+              style={fieldStyle(!!passwordError)}
               disabled={loading}
               autoComplete="new-password"
             />
           </div>
 
           {passwordError && (
-            <div className="p-3 rounded-xl text-xs text-white"
+            <div role="alert" className="p-3 rounded-xl text-xs text-white"
                  style={{ background: 'rgba(217,83,79,0.2)', border: '1px solid rgba(217,83,79,0.3)' }}>
-              ⚠️ {passwordError}
+              {passwordError}
             </div>
           )}
 
@@ -153,8 +170,14 @@ export default function ChangePasswordPage() {
               cursor: loading ? 'wait' : 'pointer'
             }}
           >
-            {loading ? 'Alterando…' : 'Alterar Senha'}
+            {loading ? 'Alterando…' : 'Alterar senha'}
           </button>
+
+          {!firstAccess && (
+            <button type="button" onClick={() => router.back()} className="w-full text-xs mt-1" style={{ color: '#a08060' }}>
+              Voltar
+            </button>
+          )}
         </form>
       </div>
     </div>

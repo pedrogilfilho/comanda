@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { getReports, Reports } from '@/lib/api/reports'
-import { money, weight, CATEGORY_LABEL, PAYMENT_LABEL, todayISO } from '@/lib/utils/format'
+import { money, weight, CATEGORY_LABEL, PAYMENT_LABEL, PAYMENT_ICON, todayISO } from '@/lib/utils/format'
 import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import { currentUserName } from '@/lib/pdf/current-user'
 
@@ -50,8 +51,8 @@ export default function ReportsTab() {
     setLoading(true)
     try {
       setData(await getReports(range.from, range.to))
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar relatórios')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao carregar relatórios'))
     } finally {
       setLoading(false)
     }
@@ -67,8 +68,8 @@ export default function ReportsTab() {
       const { downloadReportsPdf } = await import('@/lib/pdf/reports-pdf')
       await downloadReportsPdf(data, range.from, range.to, currentUserName())
       toast.success('PDF gerado')
-    } catch (e: any) {
-      toast.error(e.message || 'Não foi possível gerar o PDF')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Não foi possível gerar o PDF'))
     } finally {
       setExporting(false)
     }
@@ -92,7 +93,7 @@ export default function ReportsTab() {
         )
       case 'payments':
         return data.byPayment.length === 0 ? empty : (
-          <Bars rows={data.byPayment.map((m) => ({ label: `${PAYMENT_LABEL[m.method]?.icon ?? ''} ${PAYMENT_LABEL[m.method]?.label ?? m.method}`, value: m.amount, display: money(m.amount), hint: `${m.count} ${m.count === 1 ? 'pagamento' : 'pagamentos'}` }))} />
+          <Bars rows={data.byPayment.map((m) => ({ label: `${PAYMENT_ICON[m.method] ?? ''} ${PAYMENT_LABEL[m.method] ?? m.method}`, value: m.amount, display: money(m.amount), hint: `${m.count} ${m.count === 1 ? 'pagamento' : 'pagamentos'}` }))} />
         )
       case 'employees':
         return data.topEmployees.length === 0 ? empty : (

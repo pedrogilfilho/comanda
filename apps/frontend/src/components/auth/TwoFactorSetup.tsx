@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { TwoFactorSetup as SetupData } from '@/lib/api/auth'
 import CodeInput from './CodeInput'
 
@@ -30,7 +31,7 @@ export default function TwoFactorSetup({ start, confirm, onFinish, onCancel, int
     start()
       .then(setData)
       .catch((e: any) => {
-        toast.error(e.message || 'Não foi possível gerar o QR Code')
+        toast.error(errorMessage(e, 'Não foi possível gerar o QR Code'))
         onCancel?.()
       })
   }, [start, onCancel])
@@ -45,8 +46,8 @@ export default function TwoFactorSetup({ start, confirm, onFinish, onCancel, int
       const res = await confirm(code)
       setRecoveryCodes(res.recoveryCodes)
       toast.success('Verificação em 2 etapas ativada!')
-    } catch (e: any) {
-      toast.error(e.message || 'Código inválido')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Código inválido'))
       setCode('')
     } finally {
       setBusy(false)

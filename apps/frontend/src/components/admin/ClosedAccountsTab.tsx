@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { listClosedAccounts, ClosedAccountsResult } from '@/lib/api/reports'
-import { money, weight, time, dateTime, todayISO, PAYMENT_LABEL } from '@/lib/utils/format'
+import { money, weight, time, dateTime, todayISO, PAYMENT_LABEL, PAYMENT_ICON } from '@/lib/utils/format'
 import { Payment } from '@/lib/api/tables'
 import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import { currentUserName } from '@/lib/pdf/current-user'
@@ -14,7 +15,7 @@ const duration = (from: string, to: string) => {
 }
 
 const paymentText = (p: Payment) =>
-  `${PAYMENT_LABEL[p.method]?.label ?? p.method}${p.method === 'CREDITO' && p.installments > 1 ? ` ${p.installments}x` : ''}`
+  `${PAYMENT_LABEL[p.method] ?? p.method}${p.method === 'CREDITO' && p.installments > 1 ? ` ${p.installments}x` : ''}`
 
 export default function ClosedAccountsTab() {
   const [range, setRange] = useState({ from: todayISO(), to: todayISO() })
@@ -28,8 +29,8 @@ export default function ClosedAccountsTab() {
     setLoading(true)
     try {
       setData(await listClosedAccounts(range.from, range.to))
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar as mesas fechadas')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao carregar as mesas fechadas'))
     } finally {
       setLoading(false)
     }
@@ -45,8 +46,8 @@ export default function ClosedAccountsTab() {
       const { downloadClosedAccountsPdf } = await import('@/lib/pdf/reports-pdf')
       await downloadClosedAccountsPdf(data, range.from, range.to, currentUserName())
       toast.success('PDF gerado')
-    } catch (e: any) {
-      toast.error(e.message || 'Não foi possível gerar o PDF')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Não foi possível gerar o PDF'))
     } finally {
       setExporting(false)
     }
@@ -104,7 +105,7 @@ export default function ClosedAccountsTab() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {data.summary.byPayment.map((m) => (
               <div key={m.method}>
-                <p className="text-sm text-[#2a1f14]">{PAYMENT_LABEL[m.method]?.icon} {PAYMENT_LABEL[m.method]?.label ?? m.method}</p>
+                <p className="text-sm text-[#2a1f14]">{PAYMENT_ICON[m.method]} {PAYMENT_LABEL[m.method] ?? m.method}</p>
                 <p className="font-bold" style={{ color: '#c45c2a' }}>{money(m.amount)}</p>
                 <p className="text-[11px]" style={{ color: '#8a7060' }}>{m.count} {m.count === 1 ? 'pagamento' : 'pagamentos'}</p>
               </div>
@@ -146,7 +147,7 @@ export default function ClosedAccountsTab() {
                   <div className="text-xs flex-1 basis-full sm:basis-auto min-w-0 sm:min-w-[180px] order-last sm:order-none" style={{ color: '#7a6650' }}>
                     <p>{multiDay ? dateTime(a.openedAt) : time(a.openedAt)} → {multiDay ? dateTime(a.closedAt) : time(a.closedAt)} <span style={{ color: '#8a7060' }}>({duration(a.openedAt, a.closedAt)})</span></p>
                     <p>Fechada por <strong>{a.closedBy}</strong> · {a.orders.length} {a.orders.length === 1 ? 'pedido' : 'pedidos'}</p>
-                    {a.payments.length > 0 && <p>{a.payments.map((p) => `${PAYMENT_LABEL[p.method]?.icon ?? ''} ${paymentText(p)}`).join(' + ')}</p>}
+                    {a.payments.length > 0 && <p>{a.payments.map((p) => `${PAYMENT_ICON[p.method] ?? ''} ${paymentText(p)}`).join(' + ')}</p>}
                   </div>
                   {a.divergent && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}>⚠ divergência</span>}
                   <span className="font-bold text-lg ml-auto sm:ml-0" style={{ color: '#c45c2a' }}>{money(a.total)}</span>
@@ -180,7 +181,7 @@ export default function ClosedAccountsTab() {
                           <p className="text-xs font-semibold mb-0.5" style={{ color: '#7a6650' }}>Pagamento</p>
                           {a.payments.map((p, i) => (
                             <div key={i} className="flex justify-between text-sm">
-                              <span>{PAYMENT_LABEL[p.method]?.icon} {paymentText(p)}{p.method === 'CREDITO' && p.installments > 1 && <span className="text-xs" style={{ color: '#8a7060' }}> (de {money(Math.round(p.amount / p.installments))})</span>}</span>
+                              <span>{PAYMENT_ICON[p.method]} {paymentText(p)}{p.method === 'CREDITO' && p.installments > 1 && <span className="text-xs" style={{ color: '#8a7060' }}> (de {money(Math.round(p.amount / p.installments))})</span>}</span>
                               <span>{money(p.amount)}</span>
                             </div>
                           ))}
@@ -201,7 +202,6 @@ export default function ClosedAccountsTab() {
           })}
         </div>
       )}
-      <p className="text-xs mt-3" style={{ color: '#8a7060' }}>Contas fechadas antes desta atualização não aparecem aqui, pois o registro detalhado de cada fechamento começou agora.</p>
     </div>
   )
 }

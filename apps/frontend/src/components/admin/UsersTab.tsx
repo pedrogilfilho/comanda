@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Dialog from '@/components/ui/Dialog'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { AppUser, UserRole, createUser, deleteUser, resetUserPassword, resetUserTwoFactor, setUserActive } from '@/lib/api/users'
 import { ROLE_LABEL } from '@/lib/utils/format'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -52,8 +54,8 @@ export default function UsersTab({ users, loading, currentUserId, onChange }: Us
       setForm({ name: '', username: '', role: 'GARCOM' })
       setShowCreate(false)
       onChange()
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao criar usuário')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao criar usuário'))
     } finally {
       setCreating(false)
     }
@@ -79,8 +81,8 @@ export default function UsersTab({ users, loading, currentUserId, onChange }: Us
       }
       setPending(null)
       onChange()
-    } catch (e: any) {
-      toast.error(e.message || 'Não foi possível concluir a ação')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Não foi possível concluir a ação'))
     } finally {
       setBusy(false)
     }
@@ -156,9 +158,8 @@ export default function UsersTab({ users, loading, currentUserId, onChange }: Us
       )}
 
       {showCreate && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 w-full max-w-sm space-y-4 max-h-[92vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>Criar Novo Usuário</h3>
+        <Dialog title="Criar usuário" onClose={() => setShowCreate(false)} dismissible={!creating}>
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Nome *</label>
               <input
@@ -197,11 +198,11 @@ export default function UsersTab({ users, loading, currentUserId, onChange }: Us
             </div>
             <p className="text-xs" style={{ color: '#7a6650' }}>ℹ️ A senha inicial será <strong>123</strong> e o usuário deverá trocá-la no primeiro acesso.</p>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowCreate(false)} disabled={creating} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0f0f0', color: '#7a6650' }}>Cancelar</button>
+              <button onClick={() => setShowCreate(false)} disabled={creating} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0ebe4', color: '#6b5a4a' }}>Voltar</button>
               <button onClick={handleCreate} disabled={creating} className="flex-1 py-2 rounded-lg font-semibold text-white" style={{ background: '#3d5c3a', opacity: creating ? 0.6 : 1 }}>{creating ? 'Criando…' : 'Criar'}</button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {pending && (

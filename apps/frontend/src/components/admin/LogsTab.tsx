@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { listLogs, AuditLog } from '@/lib/api/reports'
 import { time, dateTime, todayISO } from '@/lib/utils/format'
 import DateRangeFilter from '@/components/ui/DateRangeFilter'
@@ -35,8 +36,8 @@ export default function LogsTab() {
     setLoading(true)
     try {
       setLogs(await listLogs(range.from, range.to, action || undefined))
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao carregar logs')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao carregar logs'))
     } finally {
       setLoading(false)
     }

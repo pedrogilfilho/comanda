@@ -1,8 +1,10 @@
-// Nome do usuário logado, para constar no PDF/arquivo gerado
+// Nome do usuário logado, para constar no PDF/arquivo gerado. Quem preenche é o SessionProvider.
+let name: string | undefined
+
+export function setCurrentUserName(value: string | undefined) {
+  name = value
+}
+
 export function currentUserName(): string | undefined {
-  try {
-    return JSON.parse(localStorage.getItem('user') || 'null')?.name ?? undefined
-  } catch {
-    return undefined
-  }
+  return name
 }

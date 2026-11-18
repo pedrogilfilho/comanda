@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { DEFAULT_MIN_GRAMS } from '@comanda/shared'
+import Dialog from '@/components/ui/Dialog'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { Product, ProductCategory, createProduct, removeProduct } from '@/lib/api/products'
 import { money, weight, toCents, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/utils/format'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -13,7 +16,7 @@ interface MenuTabProps {
 }
 
 export default function MenuTab({ products, loading, onChange }: MenuTabProps) {
-  const empty = { name: '', category: 'CARNE' as ProductCategory, description: '', price: '', minGrams: '300', stock: '' }
+  const empty = { name: '', category: 'CARNE' as ProductCategory, description: '', price: '', minGrams: String(DEFAULT_MIN_GRAMS), stock: '' }
   const [form, setForm] = useState(empty)
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -44,8 +47,8 @@ export default function MenuTab({ products, loading, onChange }: MenuTabProps) {
       setForm(empty)
       setShowCreate(false)
       onChange()
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao adicionar item')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao adicionar item'))
     } finally {
       setSaving(false)
     }
@@ -59,8 +62,8 @@ export default function MenuTab({ products, loading, onChange }: MenuTabProps) {
       toast.success(`${toRemove.name} removido do cardápio`)
       setToRemove(null)
       onChange()
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao remover item')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao remover item'))
     } finally {
       setRemoving(false)
     }
@@ -105,9 +108,8 @@ export default function MenuTab({ products, loading, onChange }: MenuTabProps) {
       )}
 
       {showCreate && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 w-full max-w-md space-y-4 max-h-[92vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>Adicionar Item ao Cardápio</h3>
+        <Dialog title="Adicionar item ao cardápio" onClose={() => setShowCreate(false)} dismissible={!saving}>
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Categoria *</label>
               <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as ProductCategory }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }}>
@@ -143,11 +145,11 @@ export default function MenuTab({ products, loading, onChange }: MenuTabProps) {
               <input inputMode="decimal" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }} placeholder="0" />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowCreate(false)} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0f0f0', color: '#7a6650' }}>Cancelar</button>
+              <button onClick={() => setShowCreate(false)} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0ebe4', color: '#6b5a4a' }}>Voltar</button>
               <button onClick={handleCreate} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold text-white" style={{ background: '#3d5c3a', opacity: saving ? 0.6 : 1 }}>{saving ? 'Salvando…' : 'Adicionar'}</button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {toRemove && (

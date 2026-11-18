@@ -1,6 +1,7 @@
-import { fetchWithAuth } from './config'
+import type { UserRole } from '@comanda/shared'
+import { http } from './http'
 
-export type UserRole = 'ADMIN' | 'GERENTE' | 'GARCOM' | 'COZINHA'
+export type { UserRole }
 
 export interface AppUser {
   id: string
@@ -17,33 +18,18 @@ export interface AppUser {
   createdAt: string
 }
 
-export async function listUsers(): Promise<AppUser[]> {
-  return fetchWithAuth('/users', { method: 'GET' })
-}
+export const listUsers = () => http.get<AppUser[]>('/users')
 
-// Senha inicial padrão "123" (troca obrigatória no primeiro login)
-export async function createUser(data: {
-  username: string
-  name: string
-  role: UserRole
-  email?: string
-}): Promise<{ id: string; message: string }> {
-  return fetchWithAuth('/users', { method: 'POST', body: JSON.stringify(data) })
-}
+// Senha inicial padrão (troca obrigatória no primeiro login)
+export const createUser = (data: { username: string; name: string; role: UserRole; email?: string }) =>
+  http.post<{ id: string; message: string }>('/users', data)
 
-export async function deleteUser(id: string): Promise<{ success: boolean }> {
-  return fetchWithAuth(`/users/${id}`, { method: 'DELETE' })
-}
+export const deleteUser = (id: string) => http.delete<{ success: boolean }>(`/users/${id}`)
 
-export async function resetUserPassword(id: string): Promise<{ success: boolean }> {
-  return fetchWithAuth(`/users/${id}/reset-password`, { method: 'POST' })
-}
+export const resetUserPassword = (id: string) => http.post<{ success: boolean }>(`/users/${id}/reset-password`)
 
-export async function setUserActive(id: string, active: boolean): Promise<{ success: boolean }> {
-  return fetchWithAuth(`/users/${id}/active`, { method: 'PATCH', body: JSON.stringify({ active }) })
-}
+export const setUserActive = (id: string, active: boolean) =>
+  http.patch<{ success: boolean }>(`/users/${id}/active`, { active })
 
 // Remove a verificação em 2 etapas de quem perdeu o celular
-export async function resetUserTwoFactor(id: string): Promise<{ success: boolean }> {
-  return fetchWithAuth(`/users/${id}/reset-two-factor`, { method: 'POST' })
-}
+export const resetUserTwoFactor = (id: string) => http.post<{ success: boolean }>(`/users/${id}/reset-two-factor`)

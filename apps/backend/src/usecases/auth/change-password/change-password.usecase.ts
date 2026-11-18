@@ -1,15 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PASSWORD_MIN_LENGTH } from '@comanda/shared';
+import { passwordProblem } from '@comanda/shared';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { HashingService } from 'src/infra/services/hashing/hashing.service';
 import { AppError } from 'src/shared/errors/app-error';
 
-// Mesma regra do frontend: tamanho mínimo e não pode ser só números
-export function passwordProblem(password: string): string | null {
-  if (!password || password.length < PASSWORD_MIN_LENGTH) return `A senha precisa ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres`;
-  if (/^\d+$/.test(password)) return 'A senha não pode ter só números';
-  return null;
-}
+// A regra mora no shared, igual para frontend e backend
+export { passwordProblem };
 
 @Injectable()
 export class ChangePasswordUsecase {

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Dialog from '@/components/ui/Dialog'
 import { toast } from 'sonner'
+import { errorMessage } from '@/lib/api/http'
 import { Product, adjustStock } from '@/lib/api/products'
 import { weight, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/utils/format'
 
@@ -62,12 +64,13 @@ export default function StockTab({ products, loading, onChange }: StockTabProps)
     const detail = form.reason === 'Outro' ? form.note.trim() : form.note.trim() ? `${form.reason}: ${form.note.trim()}` : form.reason
     setSaving(true)
     try {
-      await adjustStock(target.id, preview, `${label} · ${detail}`)
+      // O tipo vai para o histórico de movimentações; o texto com o rótulo aparece nos logs
+      await adjustStock(target.id, preview, form.movement, `${label} · ${detail}`)
       toast.success(`Estoque de ${target.name}: ${show(target, preview)}`)
       setTarget(null)
       onChange()
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao ajustar estoque')
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao ajustar estoque'))
     } finally {
       setSaving(false)
     }
@@ -135,10 +138,9 @@ export default function StockTab({ products, loading, onChange }: StockTabProps)
       )}
 
       {target && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 w-full max-w-md space-y-4 max-h-[92vh] overflow-y-auto">
+        <Dialog title="Ajustar estoque" onClose={() => setTarget(null)} dismissible={!saving}>
+          <div className="space-y-4">
             <div>
-              <h3 className="text-xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>Ajustar Estoque</h3>
               <p className="text-sm mt-1" style={{ color: '#7a6650' }}>{target.name} · atual <strong>{show(target, target.stock)}</strong></p>
             </div>
 
@@ -189,11 +191,11 @@ export default function StockTab({ products, loading, onChange }: StockTabProps)
             </div>
 
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setTarget(null)} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0f0f0', color: '#7a6650' }}>Cancelar</button>
+              <button onClick={() => setTarget(null)} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0ebe4', color: '#6b5a4a' }}>Voltar</button>
               <button onClick={handleSave} disabled={saving || preview === null} className="flex-1 py-2 rounded-lg font-semibold text-white disabled:opacity-40" style={{ background: '#3d5c3a', opacity: saving ? 0.6 : undefined }}>{saving ? 'Salvando…' : 'Confirmar ajuste'}</button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   )

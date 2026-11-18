@@ -1,4 +1,4 @@
-import { fetchWithAuth } from './config'
+import { http } from './http'
 import { Payment, PaymentMethod } from './tables'
 
 export type PaymentSummary = { method: PaymentMethod; count: number; amount: number }[]
@@ -50,15 +50,12 @@ export interface AuditLog {
 }
 
 // Datas no formato AAAA-MM-DD (horário de Brasília), período inclusivo
-export async function getReports(from: string, to: string): Promise<Reports> {
-  return fetchWithAuth(`/reports?from=${from}&to=${to}`, { method: 'GET' })
-}
+export const getReports = (from: string, to: string) => http.get<Reports>(`/reports?from=${from}&to=${to}`)
 
-export async function listClosedAccounts(from: string, to: string): Promise<ClosedAccountsResult> {
-  return fetchWithAuth(`/closed-accounts?from=${from}&to=${to}`, { method: 'GET' })
-}
+export const listClosedAccounts = (from: string, to: string) =>
+  http.get<ClosedAccountsResult>(`/closed-accounts?from=${from}&to=${to}`)
 
-export async function listLogs(from: string, to: string, action?: string): Promise<AuditLog[]> {
+export function listLogs(from: string, to: string, action?: string): Promise<AuditLog[]> {
   const type = action ? `&action=${encodeURIComponent(action)}` : ''
-  return fetchWithAuth(`/logs?from=${from}&to=${to}${type}`, { method: 'GET' })
+  return http.get<AuditLog[]>(`/logs?from=${from}&to=${to}${type}`)
 }
