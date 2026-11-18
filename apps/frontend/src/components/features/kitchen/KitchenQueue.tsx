@@ -16,6 +16,7 @@ import Card from '@/components/ui/Card';
 import EmptyState from '@/components/ui/EmptyState';
 import PageTitle from '@/components/ui/PageTitle';
 import { SkeletonList } from '@/components/ui/Skeleton';
+import { kitchenTimes } from './kitchenTimes';
 
 // Botão da cozinha para o próximo passo do pedido
 const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
@@ -34,10 +35,18 @@ export default function KitchenQueue() {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Os tempos andam sozinhos, mesmo entre uma atualização e outra da fila
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const load = useCallback(async () => {
     try {
       setOrders(await listKitchenOrders());
+      setNow(Date.now());
     } catch (e) {
       toast.error(errorMessage(e, 'Erro ao carregar a fila'));
     }
@@ -98,6 +107,7 @@ export default function KitchenQueue() {
                   </div>
                   <Badge tone={tone.badge}>{ORDER_STATUS_LABEL[o.status] ?? o.status}</Badge>
                 </div>
+                <p className="text-sm font-medium text-ink tabular-nums">{kitchenTimes(o, now)}</p>
                 <ul className="space-y-1">
                   {o.items.map((it, i) => (
                     <li key={i} className="text-base text-ink">

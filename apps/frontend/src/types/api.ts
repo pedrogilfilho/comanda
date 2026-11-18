@@ -97,6 +97,8 @@ export interface KitchenOrder {
   clientName: string | null;
   status: OrderStatus;
   createdAt: string;
+  startedAt: string | null;
+  readyAt: string | null;
   items: { productName: string; quantity: number; isMeat: boolean; notes: string | null }[];
 }
 
