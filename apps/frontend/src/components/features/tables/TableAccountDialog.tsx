@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   MAX_INSTALLMENTS,
@@ -13,9 +14,13 @@ import { errorMessage } from '@/services/http';
 import { closeTable } from '@/services/tables';
 import type { PaymentMethod, Table } from '@/types/api';
 import { getTableAccount, TableAccount } from '@/services/orders';
-import { money, weight, toCents, centsToInput, PAYMENT_LABEL, PAYMENT_ICON } from '@/lib/format';
+import { money, weight, toCents, centsToInput, PAYMENT_LABEL } from '@/lib/format';
+import { cx } from '@/lib/cx';
 import { useSession } from '@/hooks/useSession';
-import Dialog from '@/components/ui/Dialog';
+import Button from '@/components/ui/Button';
+import Dialog, { DialogActions } from '@/components/ui/Dialog';
+import Field, { Input, Select } from '@/components/ui/Field';
+import Skeleton from '@/components/ui/Skeleton';
 
 interface TableAccountDialogProps {
   table: Table;
@@ -112,90 +117,74 @@ export default function TableAccountDialog({ table, onClose, onClosed }: TableAc
     }
   };
 
-  const footer = confirming ? undefined : (
-    <div className="flex gap-3">
-      <button
-        onClick={onClose}
-        className="flex-1 py-2.5 rounded-lg font-semibold text-sm"
-        style={{ background: '#f0ebe4', color: '#6b5a4a' }}
-      >
+  const footer = confirming ? (
+    <DialogActions>
+      <Button variant="secondary" onClick={() => setConfirming(false)} disabled={closing}>
         Voltar
-      </button>
-      <button
-        onClick={startClosing}
-        disabled={loading || blockedByKitchen}
-        className="flex-1 py-2.5 rounded-lg font-semibold text-sm text-white disabled:opacity-40"
-        style={{ background: '#3d5c3a' }}
-      >
+      </Button>
+      <Button onClick={handleClose} disabled={!paymentOk} loading={closing}>
+        {needsPayment ? `Receber ${money(total)}` : 'Liberar mesa'}
+      </Button>
+    </DialogActions>
+  ) : (
+    <DialogActions>
+      <Button variant="secondary" onClick={onClose}>
+        Voltar
+      </Button>
+      <Button onClick={startClosing} disabled={loading || blockedByKitchen}>
         {items.length === 0 && !loading ? 'Liberar mesa' : 'Fechar conta'}
-      </button>
-    </div>
+      </Button>
+    </DialogActions>
   );
 
   return (
     <Dialog
-      title={`Conta · Mesa ${table.identifier}`}
+      title={`Conta da mesa ${table.identifier}`}
+      description={table.clientName ? `Cliente: ${table.clientName}` : undefined}
       onClose={onClose}
       dismissible={!closing}
       footer={footer}
     >
-      {table.clientName && (
-        <div className="mb-4 p-3 rounded-lg" style={{ background: '#f5f0eb' }}>
-          <p className="text-xs" style={{ color: '#6b5a4a' }}>
-            Cliente
-          </p>
-          <p className="font-semibold text-[#2a1f14]">{table.clientName}</p>
-        </div>
-      )}
-
       {loading ? (
-        <div className="h-32 rounded-xl animate-pulse" style={{ background: '#f5f0eb' }} />
+        <Skeleton className="h-32 rounded-md" />
       ) : (
         <>
-          <div className="mb-4 space-y-1">
-            {items.length === 0 ? (
-              <p className="text-center py-4 text-[#6b5a4a]">Nenhum item consumido</p>
-            ) : (
-              items.map((it) => (
-                <div key={it.id} className="flex justify-between gap-3 text-sm text-[#2a1f14] py-1">
+          {items.length === 0 ? (
+            <p className="py-4 text-center text-ink-muted">Nenhum item consumido</p>
+          ) : (
+            <ul className="mb-4 space-y-1">
+              {items.map((it) => (
+                <li key={it.id} className="flex justify-between gap-3 py-1 text-sm text-ink">
                   <span className="min-w-0">
                     {it.productName}{' '}
-                    <span style={{ color: '#6b5a4a' }}>
+                    <span className="text-ink-muted">
                       {it.isMeat ? weight(it.quantity) : `x${it.quantity}`}
                     </span>
-                    {it.notes && (
-                      <span className="block text-xs italic" style={{ color: '#9a5f14' }}>
-                        ↳ {it.notes}
-                      </span>
-                    )}
+                    {it.notes && <span className="block text-xs text-warning">Obs.: {it.notes}</span>}
                   </span>
-                  <span className="whitespace-nowrap">{money(it.subtotal)}</span>
-                </div>
-              ))
-            )}
-          </div>
+                  <span className="whitespace-nowrap tabular-nums">{money(it.subtotal)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           {account && (
-            <div className="border-t pt-3 space-y-1" style={{ borderColor: '#d9cfc2' }}>
+            <dl className="space-y-1 border-t border-hairline pt-3 tabular-nums">
               <div className="flex justify-between text-sm">
-                <span style={{ color: '#6b5a4a' }}>Subtotal</span>
-                <span>{money(account.subtotal)}</span>
+                <dt className="text-ink-muted">Subtotal</dt>
+                <dd>{money(account.subtotal)}</dd>
               </div>
               <div className="flex justify-between text-sm">
-                <span style={{ color: '#6b5a4a' }}>Taxa de serviço ({FEE_PERCENT}%)</span>
-                <span style={{ color: '#c45c2a' }}>{money(account.serviceFee)}</span>
+                <dt className="text-ink-muted">Taxa de serviço ({FEE_PERCENT}%)</dt>
+                <dd>{money(account.serviceFee)}</dd>
               </div>
-              <div className="flex justify-between text-lg font-bold pt-1">
-                <span className="text-[#2a1f14]">Total</span>
-                <span style={{ color: '#c45c2a' }}>{money(account.total)}</span>
+              <div className="flex justify-between pt-1 text-lg font-bold">
+                <dt className="text-ink">Total</dt>
+                <dd className="text-accent-strong">{money(account.total)}</dd>
               </div>
-            </div>
+            </dl>
           )}
           {inKitchen > 0 && (
-            <p
-              role="status"
-              className="text-xs mt-3 p-2 rounded-lg"
-              style={{ background: 'rgba(232,160,74,0.15)', color: '#7a4a0e' }}
-            >
+            <p role="status" className="mt-3 rounded-md bg-warning/10 p-3 text-sm text-warning">
               {inKitchen} {inKitchen === 1 ? 'pedido ainda está' : 'pedidos ainda estão'} na cozinha.{' '}
               {isAdmin
                 ? 'Como administrador, você pode fechar mesmo assim.'
@@ -206,40 +195,37 @@ export default function TableAccountDialog({ table, onClose, onClosed }: TableAc
       )}
 
       {confirming && (
-        <div className="mt-5 p-3 rounded-xl space-y-3" style={{ background: '#f5f0eb' }}>
+        <div className="mt-5 space-y-3 rounded-md bg-surface-2 p-3">
           {!needsPayment ? (
-            <p className="text-sm text-[#2a1f14]">
+            <p className="text-sm text-ink">
               Liberar a mesa <strong>{table.identifier}</strong> sem consumo?
             </p>
           ) : (
             <>
-              <p className="text-sm font-semibold text-[#2a1f14]">Forma de pagamento</p>
+              <p className="text-sm font-semibold text-ink">Forma de pagamento</p>
               {lines.map((l, i) => {
                 const amount = cents(l);
                 const received = toCents(l.received);
                 const change = l.method === 'DINHEIRO' && Number.isFinite(received) ? received - amount : NaN;
                 return (
-                  <fieldset
-                    key={i}
-                    className="p-3 rounded-lg bg-white space-y-2"
-                    style={{ border: '1px solid #e8ddd2' }}
-                  >
+                  <fieldset key={i} className="space-y-3 rounded-md border border-hairline bg-surface p-3">
                     <div className="flex items-center justify-between">
-                      <legend className="text-xs font-semibold" style={{ color: '#6b5a4a' }}>
+                      <legend className="text-sm font-semibold text-ink-muted">
                         {lines.length > 1 ? `Pagamento ${i + 1}` : 'Pagamento'}
                       </legend>
                       {lines.length > 1 && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-danger hover:text-danger"
                           onClick={() => removeLine(i)}
-                          className="text-xs font-semibold"
-                          style={{ color: '#b03a2e' }}
                         >
-                          Remover
-                        </button>
+                          Remover pagamento
+                        </Button>
                       )}
                     </div>
                     <div
-                      className="grid grid-cols-2 min-[380px]:grid-cols-4 gap-1.5"
+                      className="grid grid-cols-2 gap-1.5 min-[380px]:grid-cols-4"
                       role="radiogroup"
                       aria-label="Forma de pagamento"
                     >
@@ -248,91 +234,60 @@ export default function TableAccountDialog({ table, onClose, onClosed }: TableAc
                         return (
                           <button
                             key={m}
+                            type="button"
                             role="radio"
                             aria-checked={active}
                             onClick={() => updateLine(i, { method: m, installments: 1 })}
-                            className="py-2 rounded-lg text-xs font-semibold border"
-                            style={{
-                              background: active ? '#3d5c3a' : '#fff',
-                              color: active ? '#fff' : '#5a4a3a',
-                              borderColor: active ? '#3d5c3a' : '#e8ddd2',
-                            }}
+                            className={cx(
+                              'min-h-tap rounded-sm border text-sm font-semibold transition-colors',
+                              active
+                                ? 'border-accent bg-accent/10 text-accent-strong'
+                                : 'border-hairline bg-surface text-ink hover:bg-surface-2',
+                            )}
                           >
-                            <span className="block text-base leading-none mb-0.5" aria-hidden>
-                              {PAYMENT_ICON[m]}
-                            </span>
                             {PAYMENT_LABEL[m]}
                           </button>
                         );
                       })}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <div className="flex-1 min-w-[120px]">
-                        <label
-                          htmlFor={`amount-${i}`}
-                          className="block text-xs mb-0.5"
-                          style={{ color: '#6b5a4a' }}
-                        >
-                          Valor (R$)
-                        </label>
-                        <input
+                    <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                      <Field label="Valor (R$)" htmlFor={`amount-${i}`}>
+                        <Input
                           id={`amount-${i}`}
                           inputMode="decimal"
                           value={l.amount}
                           onChange={(e) => updateLine(i, { amount: e.target.value })}
-                          className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                          style={{ borderColor: '#d9cfc2' }}
                         />
-                      </div>
+                      </Field>
                       {l.method === 'CREDITO' && (
-                        <div className="flex-1 min-w-[140px]">
-                          <label
-                            htmlFor={`installments-${i}`}
-                            className="block text-xs mb-0.5"
-                            style={{ color: '#6b5a4a' }}
-                          >
-                            Parcelas
-                          </label>
-                          <select
+                        <Field label="Parcelas" htmlFor={`installments-${i}`}>
+                          <Select
                             id={`installments-${i}`}
                             value={l.installments}
                             onChange={(e) => updateLine(i, { installments: Number(e.target.value) })}
-                            className="w-full px-2 py-1.5 border rounded-lg text-sm bg-white"
-                            style={{ borderColor: '#d9cfc2' }}
                           >
                             {Array.from({ length: MAX_INSTALLMENTS }, (_, k) => k + 1).map((n) => (
                               <option key={n} value={n}>
                                 {n === 1 ? 'À vista' : `${n}x de ${money(installmentValue(amount, n))}`}
                               </option>
                             ))}
-                          </select>
-                        </div>
+                          </Select>
+                        </Field>
                       )}
                       {l.method === 'DINHEIRO' && (
-                        <div className="flex-1 min-w-[120px]">
-                          <label
-                            htmlFor={`received-${i}`}
-                            className="block text-xs mb-0.5"
-                            style={{ color: '#6b5a4a' }}
-                          >
-                            Recebido (troco)
-                          </label>
-                          <input
+                        <Field label="Recebido do cliente" htmlFor={`received-${i}`} optional>
+                          <Input
                             id={`received-${i}`}
                             inputMode="decimal"
                             value={l.received}
                             onChange={(e) => updateLine(i, { received: e.target.value })}
-                            placeholder="Opcional"
-                            className="w-full px-2 py-1.5 border rounded-lg text-sm"
-                            style={{ borderColor: '#d9cfc2' }}
                           />
-                        </div>
+                        </Field>
                       )}
                     </div>
                     {Number.isFinite(change) && (
                       <p
-                        className="text-xs font-semibold"
-                        style={{ color: change >= 0 ? '#3d5c3a' : '#b03a2e' }}
+                        className={cx('text-sm font-semibold', change >= 0 ? 'text-success' : 'text-danger')}
                       >
                         {change >= 0 ? `Troco: ${money(change)}` : `Faltam ${money(-change)} do cliente`}
                       </p>
@@ -341,17 +296,15 @@ export default function TableAccountDialog({ table, onClose, onClosed }: TableAc
                 );
               })}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
-                  onClick={addLine}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  style={{ background: '#fff', color: '#3d5c3a', border: '1px dashed #3d5c3a' }}
-                >
+                <Button variant="secondary" size="sm" icon={Plus} onClick={addLine}>
                   Dividir pagamento
-                </button>
+                </Button>
                 <span
                   role="status"
-                  className="text-xs font-semibold"
-                  style={{ color: remaining === 0 ? '#3d5c3a' : '#b03a2e' }}
+                  className={cx(
+                    'text-sm font-semibold tabular-nums',
+                    remaining === 0 ? 'text-success' : 'text-danger',
+                  )}
                 >
                   {remaining === 0
                     ? 'Valor completo'
@@ -362,24 +315,6 @@ export default function TableAccountDialog({ table, onClose, onClosed }: TableAc
               </div>
             </>
           )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setConfirming(false)}
-              disabled={closing}
-              className="flex-1 py-2.5 sm:py-2 rounded-lg font-semibold text-sm"
-              style={{ background: '#fff', color: '#6b5a4a' }}
-            >
-              Voltar
-            </button>
-            <button
-              onClick={handleClose}
-              disabled={closing || !paymentOk}
-              className="flex-1 py-2.5 sm:py-2 rounded-lg font-semibold text-sm text-white disabled:opacity-40"
-              style={{ background: '#3d5c3a', opacity: closing ? 0.6 : undefined }}
-            >
-              {closing ? 'Fechando…' : needsPayment ? `Confirmar ${money(total)}` : 'Confirmar'}
-            </button>
-          </div>
         </div>
       )}
     </Dialog>

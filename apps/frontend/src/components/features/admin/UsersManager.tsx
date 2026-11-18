@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { ShieldCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import Dialog from '@/components/ui/Dialog';
+import { DEFAULT_PASSWORD, ROLE_LABEL, USER_DELETE_GRACE_DAYS } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import type { AppUser, UserRole } from '@/types/api';
 import {
@@ -12,34 +13,95 @@ import {
   resetUserTwoFactor,
   setUserActive,
 } from '@/services/users';
-import { ROLE_LABEL } from '@/lib/format';
-import ConfirmModal from '@/components/ui/ConfirmModal';
-
-const ROLE_STYLE: Record<string, { bg: string; fg: string }> = {
-  ADMIN: { bg: 'rgba(196,92,42,0.15)', fg: '#c45c2a' },
-  GERENTE: { bg: 'rgba(122,102,80,0.15)', fg: '#7a6650' },
-  GARCOM: { bg: 'rgba(61,92,58,0.15)', fg: '#3d5c3a' },
-  COZINHA: { bg: 'rgba(124,92,196,0.15)', fg: '#6b4fb8' },
-};
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Dialog, { DialogActions } from '@/components/ui/Dialog';
+import Field, { Input, Select } from '@/components/ui/Field';
+import PageTitle from '@/components/ui/PageTitle';
+import { SkeletonList } from '@/components/ui/Skeleton';
 
 const DAY = 24 * 60 * 60 * 1000;
 const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
-// Exclusão liberada só 30 dias depois da desativação
+// Exclusão liberada só depois do prazo da desativação
 function deleteState(u: AppUser): { allowed: boolean; hint: string } {
   if (u.active || !u.deletableAt)
-    return { allowed: false, hint: 'Desative primeiro; a exclusão é liberada 30 dias depois' };
+    return {
+      allowed: false,
+      hint: `Desative primeiro; a exclusão é liberada ${USER_DELETE_GRACE_DAYS} dias depois`,
+    };
   const left = Math.ceil((new Date(u.deletableAt).getTime() - Date.now()) / DAY);
   if (left > 0)
     return {
       allowed: false,
       hint: `Exclusão liberada em ${shortDate(u.deletableAt)} (faltam ${left} ${left === 1 ? 'dia' : 'dias'})`,
     };
-  return { allowed: true, hint: 'Desativado há mais de 30 dias' };
+  return { allowed: true, hint: `Desativado há mais de ${USER_DELETE_GRACE_DAYS} dias` };
 }
 
 type Pending = { kind: 'delete' | 'reset' | 'toggle' | 'reset2fa'; user: AppUser } | null;
+
+// Texto de cada confirmação
+function pendingCopy(p: NonNullable<Pending>): { title: string; confirm: string; message: React.ReactNode } {
+  const name = <strong>{p.user.name}</strong>;
+  switch (p.kind) {
+    case 'delete':
+      return {
+        title: 'Excluir usuário',
+        confirm: 'Excluir usuário',
+        message: (
+          <>
+            Excluir {name}? Esta ação não pode ser desfeita. Usuários que já lançaram pedidos ficam só
+            desativados, para manter o histórico.
+          </>
+        ),
+      };
+    case 'reset2fa':
+      return {
+        title: 'Resetar verificação em 2 etapas',
+        confirm: 'Resetar verificação',
+        message: (
+          <>
+            Use quando {name} perdeu o celular. A verificação em 2 etapas será removida
+            {p.user.twoFactorRequired
+              ? ' e precisará ser configurada de novo no próximo login, porque é obrigatória para este perfil.'
+              : '. Ela pode ser ativada de novo na página Segurança.'}
+          </>
+        ),
+      };
+    case 'reset':
+      return {
+        title: 'Resetar senha',
+        confirm: 'Resetar senha',
+        message: (
+          <>
+            A senha de {name} volta a ser <strong>{DEFAULT_PASSWORD}</strong> e precisa ser trocada no próximo
+            acesso.
+          </>
+        ),
+      };
+    default:
+      return p.user.active
+        ? {
+            title: 'Desativar usuário',
+            confirm: 'Desativar usuário',
+            message: (
+              <>
+                {name} não consegue mais entrar até ser reativado. O histórico de pedidos é mantido. A
+                exclusão fica disponível {USER_DELETE_GRACE_DAYS} dias depois da desativação.
+              </>
+            ),
+          }
+        : {
+            title: 'Reativar usuário',
+            confirm: 'Reativar usuário',
+            message: <>{name} volta a poder entrar no sistema.</>,
+          };
+  }
+}
 
 interface UsersManagerProps {
   users: AppUser[];
@@ -55,7 +117,8 @@ export default function UsersManager({ users, loading, currentUserId, onChange }
   const [pending, setPending] = useState<Pending>(null);
   const [busy, setBusy] = useState(false);
 
-  const handleCreate = async () => {
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!form.name.trim() || !form.username.trim()) {
       toast.error('Preencha o nome e o usuário');
       return;
@@ -67,12 +130,12 @@ export default function UsersManager({ users, loading, currentUserId, onChange }
         username: form.username.trim().toLowerCase(),
         role: form.role,
       });
-      toast.success(`Usuário ${form.name.trim()} criado! Senha inicial: 123`);
+      toast.success(`Usuário ${form.name.trim()} criado. Senha inicial: ${DEFAULT_PASSWORD}`);
       setForm({ name: '', username: '', role: 'GARCOM' });
       setShowCreate(false);
       onChange();
-    } catch (e) {
-      toast.error(errorMessage(e, 'Erro ao criar usuário'));
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erro ao criar usuário'));
     } finally {
       setCreating(false);
     }
@@ -91,7 +154,7 @@ export default function UsersManager({ users, loading, currentUserId, onChange }
         toast.success(`Verificação em 2 etapas de ${user.name} removida`);
       } else if (kind === 'reset') {
         await resetUserPassword(user.id);
-        toast.success(`Senha de ${user.name} redefinida para 123`);
+        toast.success(`Senha de ${user.name} redefinida para ${DEFAULT_PASSWORD}`);
       } else {
         await setUserActive(user.id, !user.active);
         toast.success(`Usuário ${user.name} ${user.active ? 'desativado' : 'reativado'}`);
@@ -115,159 +178,123 @@ export default function UsersManager({ users, loading, currentUserId, onChange }
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '') ?? '';
 
+  const copy = pending ? pendingCopy(pending) : null;
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-          Gerenciar Usuários
-        </h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold"
-          style={{ background: '#3d5c3a', color: '#faf6ef' }}
-        >
-          + Criar Usuário
-        </button>
-      </div>
+    <div className="space-y-6">
+      <PageTitle
+        title="Usuários"
+        subtitle="Quem entra no sistema e com qual perfil"
+        actions={
+          <Button icon={UserPlus} onClick={() => setShowCreate(true)}>
+            Criar usuário
+          </Button>
+        }
+      />
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl animate-pulse"
-              style={{ background: '#f5f0eb', height: '68px' }}
-            />
-          ))}
-        </div>
+        <SkeletonList rows={3} className="h-20" />
       ) : (
-        <div className="space-y-3">
+        <ul className="space-y-3">
           {users.map((u) => {
             const isMe = u.id === currentUserId;
-            const rs = ROLE_STYLE[u.role] ?? ROLE_STYLE.GERENTE;
             const del = deleteState(u);
             return (
-              <div
-                key={u.id}
-                className="rounded-2xl p-4 flex flex-wrap items-center gap-2"
-                style={{ background: '#fff9f2', border: '1px solid #d9cfc2', opacity: u.active ? 1 : 0.6 }}
-              >
-                <div className="flex-1 min-w-0 basis-full sm:basis-auto sm:min-w-[140px]">
-                  <p className="font-semibold text-[#2a1f14]">
-                    {u.name}
-                    {isMe && (
-                      <span className="text-xs font-normal" style={{ color: '#8a7060' }}>
-                        {' '}
-                        (você)
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs" style={{ color: '#8a7060' }}>
-                    {u.username}
-                  </p>
-                </div>
-                <span
-                  className="text-xs px-3 py-1 rounded-full font-semibold"
-                  style={{ background: rs.bg, color: rs.fg }}
-                >
-                  {ROLE_LABEL[u.role] ?? u.role}
-                </span>
-                {!u.active ? (
-                  <span
-                    className="text-xs px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(0,0,0,0.06)', color: '#7a6650' }}
-                  >
-                    Inativo
-                  </span>
-                ) : u.needsPasswordChange ? (
-                  <span
-                    className="text-xs px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(232,160,74,0.18)', color: '#b8741f' }}
-                  >
-                    Aguardando 1º acesso
-                  </span>
-                ) : (
-                  <span
-                    className="text-xs px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(61,92,58,0.15)', color: '#3d5c3a' }}
-                  >
-                    ✓ Ativo
-                  </span>
-                )}
-                {u.twoFactorEnabled ? (
-                  <span
-                    className="text-xs px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(61,92,58,0.15)', color: '#3d5c3a' }}
-                    title="Verificação em 2 etapas ativa"
-                  >
-                    🔒 2 etapas
-                  </span>
-                ) : u.twoFactorRequired && u.active ? (
-                  <span
-                    className="text-xs px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(232,160,74,0.18)', color: '#b8741f' }}
-                    title="Será obrigado a configurar no próximo login"
-                  >
-                    🔒 Configura no próximo login
-                  </span>
-                ) : null}
-                {!isMe && (
-                  <div className="w-full sm:w-auto flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setPending({ kind: 'reset', user: u })}
-                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                      style={{ borderColor: '#e8ddd2', color: '#7a6650' }}
-                    >
-                      Resetar senha
-                    </button>
-                    {u.twoFactorEnabled && (
-                      <button
-                        onClick={() => setPending({ kind: 'reset2fa', user: u })}
-                        className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                        style={{ borderColor: '#e8ddd2', color: '#7a6650' }}
-                      >
-                        Resetar 2 etapas
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setPending({ kind: 'toggle', user: u })}
-                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                      style={{ borderColor: '#e8ddd2', color: '#7a6650' }}
-                    >
-                      {u.active ? 'Desativar' : 'Reativar'}
-                    </button>
-                    {!u.active && (
-                      <button
-                        onClick={() => del.allowed && setPending({ kind: 'delete', user: u })}
-                        disabled={!del.allowed}
-                        title={del.hint}
-                        className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
-                      >
-                        Excluir
-                      </button>
-                    )}
+              <Card as="li" key={u.id} padding="sm" className={u.active ? 'sm:p-4' : 'sm:p-4 opacity-70'}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-ink">
+                      {u.name}
+                      {isMe && <span className="text-sm font-normal text-ink-muted"> (você)</span>}
+                    </p>
+                    <p className="text-sm text-ink-muted">{u.username}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Badge tone={u.role === 'ADMIN' ? 'accent' : 'neutral'}>
+                        {ROLE_LABEL[u.role] ?? u.role}
+                      </Badge>
+                      {!u.active ? (
+                        <Badge>Inativo</Badge>
+                      ) : u.needsPasswordChange ? (
+                        <Badge tone="warning">Aguardando 1º acesso</Badge>
+                      ) : (
+                        <Badge tone="success">Ativo</Badge>
+                      )}
+                      {u.twoFactorEnabled ? (
+                        <Badge tone="success" icon={ShieldCheck} title="Verificação em 2 etapas ativa">
+                          2 etapas
+                        </Badge>
+                      ) : (
+                        u.twoFactorRequired &&
+                        u.active && (
+                          <Badge
+                            tone="warning"
+                            icon={ShieldCheck}
+                            title="Precisa configurar no próximo login"
+                          >
+                            Configura no próximo login
+                          </Badge>
+                        )
+                      )}
+                    </div>
                   </div>
-                )}
+                  {!isMe && (
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPending({ kind: 'reset', user: u })}
+                      >
+                        Resetar senha
+                      </Button>
+                      {u.twoFactorEnabled && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setPending({ kind: 'reset2fa', user: u })}
+                        >
+                          Resetar 2 etapas
+                        </Button>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPending({ kind: 'toggle', user: u })}
+                      >
+                        {u.active ? 'Desativar' : 'Reativar'}
+                      </Button>
+                      {!u.active && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => del.allowed && setPending({ kind: 'delete', user: u })}
+                          disabled={!del.allowed}
+                          title={del.hint}
+                        >
+                          Excluir
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {!isMe && !u.active && (
-                  <p className="w-full text-xs" style={{ color: del.allowed ? '#3d5c3a' : '#8a7060' }}>
-                    {u.deactivatedAt ? `Desativado em ${shortDate(u.deactivatedAt)} · ` : ''}
+                  <p className={del.allowed ? 'mt-2 text-sm text-success' : 'mt-2 text-sm text-ink-muted'}>
+                    {u.deactivatedAt ? `Desativado em ${shortDate(u.deactivatedAt)}. ` : ''}
                     {del.hint}
                   </p>
                 )}
-              </div>
+              </Card>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {showCreate && (
         <Dialog title="Criar usuário" onClose={() => setShowCreate(false)} dismissible={!creating}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Nome *</label>
-              <input
-                type="text"
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Field label="Nome" htmlFor="user-name">
+              <Input
+                id="user-name"
+                autoFocus
                 value={form.name}
                 onChange={(e) => {
                   const name = e.target.value;
@@ -280,119 +307,55 @@ export default function UsersManager({ users, loading, currentUserId, onChange }
                         : suggestUsername(name),
                   }));
                 }}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
-                placeholder="Ex: João da Silva"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Usuário (login) *</label>
-              <input
-                type="text"
+            </Field>
+            <Field
+              label="Usuário (login)"
+              htmlFor="user-username"
+              hint="Letras minúsculas, números, ponto ou hífen."
+            >
+              <Input
+                id="user-username"
                 value={form.username}
+                aria-describedby="user-username-hint"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/\s/g, '') }))
                 }
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
-                placeholder="Ex: joao"
                 autoCapitalize="none"
               />
-              <p className="text-xs mt-1" style={{ color: '#8a7060' }}>
-                Letras minúsculas, números, ponto ou hífen.
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Função *</label>
-              <select
+            </Field>
+            <Field label="Perfil" htmlFor="user-role">
+              <Select
+                id="user-role"
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
               >
                 <option value="GARCOM">Garçom</option>
                 <option value="COZINHA">Cozinha</option>
-                <option value="GERENTE">Gerente (fecha contas)</option>
+                <option value="GERENTE">Gerente (fecha contas e vê relatórios)</option>
                 <option value="ADMIN">Administrador</option>
-              </select>
-            </div>
-            <p className="text-xs" style={{ color: '#7a6650' }}>
-              ℹ️ A senha inicial será <strong>123</strong> e o usuário deverá trocá-la no primeiro acesso.
+              </Select>
+            </Field>
+            <p className="rounded-md bg-surface-2 p-3 text-sm text-ink-muted">
+              A senha inicial é <strong>{DEFAULT_PASSWORD}</strong>. O usuário troca no primeiro acesso.
             </p>
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                disabled={creating}
-                className="flex-1 py-2 rounded-lg font-semibold"
-                style={{ background: '#f0ebe4', color: '#6b5a4a' }}
-              >
+            <DialogActions>
+              <Button variant="secondary" onClick={() => setShowCreate(false)} disabled={creating}>
                 Voltar
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={creating}
-                className="flex-1 py-2 rounded-lg font-semibold text-white"
-                style={{ background: '#3d5c3a', opacity: creating ? 0.6 : 1 }}
-              >
-                {creating ? 'Criando…' : 'Criar'}
-              </button>
-            </div>
-          </div>
+              </Button>
+              <Button type="submit" loading={creating}>
+                Criar usuário
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
       )}
 
-      {pending && (
-        <ConfirmModal
-          title={
-            pending.kind === 'delete'
-              ? 'Excluir Usuário'
-              : pending.kind === 'reset'
-                ? 'Resetar Senha'
-                : pending.kind === 'reset2fa'
-                  ? 'Resetar Verificação em 2 Etapas'
-                  : pending.user.active
-                    ? 'Desativar Usuário'
-                    : 'Reativar Usuário'
-          }
-          message={
-            pending.kind === 'delete' ? (
-              <>
-                Excluir <strong>{pending.user.name}</strong>? Esta ação não pode ser desfeita. Usuários que já
-                lançaram pedidos ficam apenas desativados, para manter o histórico.
-              </>
-            ) : pending.kind === 'reset2fa' ? (
-              <>
-                Use quando <strong>{pending.user.name}</strong> perdeu o celular. A verificação em 2 etapas
-                será removida
-                {pending.user.twoFactorRequired
-                  ? ' e precisará ser configurada de novo no próximo login (é obrigatória para este perfil).'
-                  : '. Ela poderá ser ativada de novo na página Segurança.'}
-              </>
-            ) : pending.kind === 'reset' ? (
-              <>
-                Redefinir a senha de <strong>{pending.user.name}</strong> para <strong>123</strong>? Ele
-                precisará criar uma nova senha no próximo acesso.
-              </>
-            ) : pending.user.active ? (
-              <>
-                <strong>{pending.user.name}</strong> não conseguirá mais entrar no sistema até ser reativado.
-                O histórico de pedidos é mantido. A exclusão só fica disponível 30 dias depois da desativação.
-              </>
-            ) : (
-              <>
-                <strong>{pending.user.name}</strong> poderá voltar a entrar no sistema.
-              </>
-            )
-          }
-          confirmLabel={
-            pending.kind === 'delete'
-              ? 'Excluir'
-              : pending.kind === 'reset' || pending.kind === 'reset2fa'
-                ? 'Resetar'
-                : pending.user.active
-                  ? 'Desativar'
-                  : 'Reativar'
-          }
+      {pending && copy && (
+        <ConfirmDialog
+          title={copy.title}
+          message={copy.message}
+          confirmLabel={copy.confirm}
           tone={pending.kind === 'delete' ? 'danger' : 'primary'}
           loading={busy}
           onConfirm={confirmPending}

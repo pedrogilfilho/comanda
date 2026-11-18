@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AuthSession,
@@ -11,17 +12,14 @@ import {
   enableTwoFactorDuringLogin,
 } from '@/services/auth';
 import { errorMessage, isApiError, tokenStore } from '@/services/http';
+import AuthLayout from '@/components/layout/AuthLayout';
+import Button from '@/components/ui/Button';
+import Field, { Input } from '@/components/ui/Field';
 import PasswordInput from '@/components/ui/PasswordInput';
 import CodeInput from '@/components/ui/CodeInput';
 import TwoFactorSetup from '@/components/features/auth/TwoFactorSetup';
 
 type Stage = 'credentials' | 'verify' | 'setup';
-
-const field = {
-  background: 'rgba(255,249,242,0.07)',
-  border: '1.5px solid rgba(255,249,242,0.12)',
-  color: '#faf6ef',
-};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -105,168 +103,95 @@ export default function LoginPage() {
     [challengeToken],
   );
 
+  if (stage === 'setup') {
+    return (
+      <AuthLayout>
+        <h1 className="font-display text-xl font-bold text-ink mb-2">Verificação em 2 etapas</h1>
+        <TwoFactorSetup
+          intro={
+            <p className="text-sm text-ink-muted">
+              Para administrador e gerente ela é obrigatória. Configure agora, leva um minuto. Depois, a cada
+              login, o sistema pede o código do app.
+            </p>
+          }
+          start={startSetup}
+          username={username.trim().toLowerCase()}
+          confirm={confirmSetup}
+          onCancel={backToCredentials}
+          onFinish={() => pendingSession && finishLogin(pendingSession)}
+        />
+      </AuthLayout>
+    );
+  }
+
+  if (stage === 'verify') {
+    return (
+      <AuthLayout>
+        <h1 className="font-display text-xl font-bold text-ink">Código de verificação</h1>
+        <p className="text-sm text-ink-muted mt-1 mb-5">
+          {useRecovery
+            ? 'Digite um dos seus códigos de recuperação. Cada um vale uma vez.'
+            : 'Abra o app autenticador no celular e digite o código de 6 dígitos.'}
+        </p>
+
+        <form onSubmit={handleVerify} className="space-y-4">
+          <CodeInput value={code} onChange={setCode} recovery={useRecovery} disabled={loading} autoFocus />
+          <Button type="submit" block loading={loading}>
+            Confirmar código
+          </Button>
+        </form>
+
+        <div className="mt-4 flex flex-col items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setUseRecovery(!useRecovery);
+              setCode('');
+            }}
+          >
+            {useRecovery ? 'Usar o código do app' : 'Perdi o celular: usar código de recuperação'}
+          </Button>
+          <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={backToCredentials}>
+            Voltar ao login
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 py-8"
-      style={{ background: 'linear-gradient(160deg, #1e140d 0%, #2e1e10 50%, #3a2516 100%)' }}
-    >
-      {/* Branding */}
-      <div className={`text-center ${stage === 'setup' ? 'mb-6' : 'mb-10'}`}>
-        <div
-          className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4"
-          style={{ background: 'rgba(196,92,42,0.15)', border: '1px solid rgba(196,92,42,0.3)' }}
-        >
-          <span className="text-4xl">🌿</span>
-        </div>
-        <h1
-          className="text-3xl sm:text-4xl font-bold text-[#faf6ef]"
-          style={{ fontFamily: 'Georgia, serif' }}
-        >
-          Comanda+
-        </h1>
-        <p className="text-[#8a7060] mt-1 text-sm">Sistema de Pedidos — Quintal do Roger</p>
-      </div>
-
-      {stage === 'setup' ? (
-        // Configuração obrigatória da verificação em 2 etapas
-        <div className="w-full max-w-sm rounded-2xl p-5 sm:p-6" style={{ background: '#fff9f2' }}>
-          <h2 className="text-lg font-bold text-[#2a1f14] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-            🔒 Verificação em 2 etapas
-          </h2>
-          <TwoFactorSetup
-            intro={
-              <p className="text-sm" style={{ color: '#7a6650' }}>
-                Para Administrador e Gerente ela é <strong>obrigatória</strong>. Configure agora, leva 1
-                minuto. Depois, a cada login, o sistema vai pedir o código do app.
-              </p>
-            }
-            start={startSetup}
-            username={username.trim().toLowerCase()}
-            confirm={confirmSetup}
-            onCancel={backToCredentials}
-            onFinish={() => pendingSession && finishLogin(pendingSession)}
+    <AuthLayout>
+      <h1 className="font-display text-xl font-bold text-ink mb-5">Entrar</h1>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <Field label="Usuário" htmlFor="username">
+          <Input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            disabled={loading}
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            required
           />
-        </div>
-      ) : (
-        <div
-          className="w-full max-w-sm rounded-2xl p-5 sm:p-6"
-          style={{ background: 'rgba(255,249,242,0.05)', border: '1px solid rgba(255,249,242,0.1)' }}
-        >
-          {stage === 'credentials' ? (
-            <>
-              <h2
-                className="text-lg font-semibold text-[#faf6ef] mb-5"
-                style={{ fontFamily: 'Georgia, serif' }}
-              >
-                Entrar
-              </h2>
-
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
-                    Usuário
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Seu usuário"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                    style={field}
-                    disabled={loading}
-                    autoComplete="username"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold block mb-1.5" style={{ color: '#a08060' }}>
-                    Senha
-                  </label>
-                  <PasswordInput
-                    placeholder="••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                    style={field}
-                    disabled={loading}
-                    autoComplete="current-password"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90 active:scale-95 mt-2"
-                  style={{
-                    background: loading ? 'rgba(196,92,42,0.4)' : '#c45c2a',
-                    color: '#faf6ef',
-                    cursor: loading ? 'wait' : 'pointer',
-                  }}
-                >
-                  {loading ? 'Verificando…' : 'Entrar'}
-                </button>
-              </form>
-            </>
-          ) : (
-            // 2ª etapa: código do app autenticador
-            <>
-              <h2
-                className="text-lg font-semibold text-[#faf6ef] mb-1"
-                style={{ fontFamily: 'Georgia, serif' }}
-              >
-                🔒 Código de verificação
-              </h2>
-              <p className="text-sm mb-5" style={{ color: '#a08060' }}>
-                {useRecovery
-                  ? 'Digite um dos seus códigos de recuperação (cada um vale uma vez).'
-                  : 'Abra o app autenticador no celular e digite o código de 6 dígitos.'}
-              </p>
-
-              <form onSubmit={handleVerify} className="space-y-4">
-                <CodeInput
-                  value={code}
-                  onChange={setCode}
-                  recovery={useRecovery}
-                  disabled={loading}
-                  autoFocus
-                  dark
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90 active:scale-95"
-                  style={{
-                    background: loading ? 'rgba(196,92,42,0.4)' : '#c45c2a',
-                    color: '#faf6ef',
-                    cursor: loading ? 'wait' : 'pointer',
-                  }}
-                >
-                  {loading ? 'Verificando…' : 'Confirmar'}
-                </button>
-              </form>
-
-              <div className="flex flex-col items-center gap-2 mt-4 text-xs">
-                <button
-                  onClick={() => {
-                    setUseRecovery(!useRecovery);
-                    setCode('');
-                  }}
-                  className="underline"
-                  style={{ color: '#c9b39a' }}
-                >
-                  {useRecovery ? 'Usar o código do app' : 'Perdi o celular: usar código de recuperação'}
-                </button>
-                <button onClick={backToCredentials} style={{ color: '#8a7060' }}>
-                  ← Voltar
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+        </Field>
+        <Field label="Senha" htmlFor="password">
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            autoComplete="current-password"
+            required
+          />
+        </Field>
+        <Button type="submit" block loading={loading} className="mt-2">
+          Entrar
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

@@ -1,20 +1,16 @@
 import Link from 'next/link';
+import { buttonClass } from '@/components/ui/Button';
 
 export default function NotFound() {
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 text-center"
-      style={{ background: '#faf6ef' }}
-    >
-      <h1 className="text-6xl font-bold text-[#2a1f14]">404</h1>
-      <p className="text-xl text-[#6b5a4a] mt-4">Página não encontrada</p>
-      <Link
-        href="/"
-        className="inline-block mt-6 px-6 py-3 rounded-xl font-semibold"
-        style={{ background: '#c45c2a', color: '#faf6ef' }}
-      >
+    <main className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 text-center sm:px-6">
+      <p className="font-display text-2xl font-bold text-ink">Página não encontrada</p>
+      <p className="mt-2 text-base text-ink-muted">
+        O endereço pode estar errado ou a página mudou de lugar.
+      </p>
+      <Link href="/" className={buttonClass({ className: 'mt-6' })}>
         Voltar ao início
       </Link>
-    </div>
+    </main>
   );
 }

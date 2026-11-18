@@ -1,13 +1,27 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ChevronDown, Download, ReceiptText, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { SERVICE_FEE_RATE, installmentValue } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { listClosedAccounts, ClosedAccountsResult } from '@/services/reports';
-import { money, weight, time, dateTime, todayISO, PAYMENT_LABEL, PAYMENT_ICON } from '@/lib/format';
-import { Payment } from '@/services/tables';
-import DateRangeFilter from '@/components/ui/DateRangeFilter';
+import type { Payment } from '@/types/api';
+import { money, weight, time, dateTime, todayISO, PAYMENT_LABEL } from '@/lib/format';
+import { cx } from '@/lib/cx';
 import { currentUserName } from '@/lib/pdf/current-user';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import DateRangeFilter from '@/components/ui/DateRangeFilter';
+import EmptyState from '@/components/ui/EmptyState';
+import Icon from '@/components/ui/Icon';
+import PageTitle from '@/components/ui/PageTitle';
+import SearchInput from '@/components/ui/SearchInput';
+import StatTile from '@/components/ui/StatTile';
+import { SkeletonList } from '@/components/ui/Skeleton';
+
+const FEE_PERCENT = Math.round(SERVICE_FEE_RATE * 100);
 
 const duration = (from: string, to: string) => {
   const min = Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60000));
@@ -30,7 +44,7 @@ export default function ClosedAccountsView() {
     try {
       setData(await listClosedAccounts(range.from, range.to));
     } catch (e) {
-      toast.error(errorMessage(e, 'Erro ao carregar as mesas fechadas'));
+      toast.error(errorMessage(e, 'Erro ao carregar as contas fechadas'));
     } finally {
       setLoading(false);
     }
@@ -71,214 +85,157 @@ export default function ClosedAccountsView() {
   const divergent = data?.accounts.filter((a) => a.divergent).length ?? 0;
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-          Mesas Fechadas
-        </h1>
-        <div className="flex gap-2">
-          <button
-            onClick={handlePdf}
-            disabled={!data || loading || exporting}
-            className="text-xs px-3 py-1.5 rounded-full font-semibold disabled:opacity-50"
-            style={{ background: '#2a1f14', color: '#faf6ef' }}
-          >
-            {exporting ? 'Gerando…' : '⬇ Baixar PDF'}
-          </button>
-          <button
-            onClick={load}
-            className="text-xs px-3 py-1.5 rounded-full font-semibold"
-            style={{ background: '#f0f0f0', color: '#7a6650' }}
-          >
-            ↻ Atualizar
-          </button>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageTitle
+        title="Contas fechadas"
+        subtitle="Cada fechamento de mesa, com pedidos e pagamentos"
+        actions={
+          <>
+            <Button variant="secondary" icon={RefreshCw} onClick={load}>
+              Atualizar lista
+            </Button>
+            <Button
+              variant="secondary"
+              icon={Download}
+              onClick={handlePdf}
+              disabled={!data || loading}
+              loading={exporting}
+            >
+              Baixar PDF
+            </Button>
+          </>
+        }
+      />
 
-      <div className="rounded-2xl p-4 mb-5" style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}>
+      <Card>
         <DateRangeFilter from={range.from} to={range.to} onChange={setRange} />
-      </div>
+      </Card>
 
       {data && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          {[
-            { l: 'Contas fechadas', v: String(data.summary.count), c: '#2a1f14' },
-            { l: 'Vendas (sem taxa)', v: money(data.summary.subtotal), c: '#2a1f14' },
-            { l: 'Taxa de serviço', v: money(data.summary.serviceFee), c: '#3d5c3a' },
-            { l: 'Total recebido', v: money(data.summary.total), c: '#c45c2a' },
-          ].map((s) => (
-            <div
-              key={s.l}
-              className="rounded-2xl p-3 sm:p-4"
-              style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}
-            >
-              <p className="text-xs" style={{ color: '#7a6650' }}>
-                {s.l}
-              </p>
-              <p
-                className="text-lg sm:text-xl font-bold mt-1 break-words"
-                style={{ color: s.c, fontFamily: 'Georgia, serif' }}
-              >
-                {s.v}
-              </p>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
+          <StatTile label="Contas fechadas" value={data.summary.count} />
+          <StatTile label="Vendas sem taxa" value={money(data.summary.subtotal)} />
+          <StatTile label="Taxa de serviço" value={money(data.summary.serviceFee)} tone="success" />
+          <StatTile label="Total recebido" value={money(data.summary.total)} tone="accent" />
         </div>
       )}
 
       {data && data.summary.byPayment.length > 0 && (
-        <div className="rounded-2xl p-4 mb-5" style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#7a6650' }}>
+        <Card as="section" aria-labelledby="by-payment">
+          <h2 id="by-payment" className="mb-3 text-sm font-semibold text-ink-muted">
             Recebido por forma de pagamento
-          </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          </h2>
+          <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {data.summary.byPayment.map((m) => (
               <div key={m.method}>
-                <p className="text-sm text-[#2a1f14]">
-                  {PAYMENT_ICON[m.method]} {PAYMENT_LABEL[m.method] ?? m.method}
-                </p>
-                <p className="font-bold" style={{ color: '#c45c2a' }}>
-                  {money(m.amount)}
-                </p>
-                <p className="text-[11px]" style={{ color: '#8a7060' }}>
+                <dt className="text-sm text-ink">{PAYMENT_LABEL[m.method] ?? m.method}</dt>
+                <dd className="font-bold text-accent-strong tabular-nums">{money(m.amount)}</dd>
+                <dd className="text-xs text-ink-muted">
                   {m.count} {m.count === 1 ? 'pagamento' : 'pagamentos'}
-                </p>
+                </dd>
               </div>
             ))}
-          </div>
-        </div>
+          </dl>
+        </Card>
       )}
 
       {divergent > 0 && (
         <p
-          className="text-sm mb-4 p-3 rounded-xl"
-          style={{
-            background: 'rgba(217,83,79,0.08)',
-            color: '#b03a2e',
-            border: '1px solid rgba(217,83,79,0.25)',
-          }}
+          role="status"
+          className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/5 p-3 text-sm text-danger"
         >
-          ⚠ {divergent} {divergent === 1 ? 'conta tem' : 'contas têm'} diferença entre pedidos, valor cobrado
-          e pagamentos. Abra a conta para conferir.
+          <Icon icon={AlertTriangle} className="mt-0.5" />
+          {divergent} {divergent === 1 ? 'conta tem' : 'contas têm'} diferença entre pedidos, valor cobrado e
+          pagamentos. Abra a conta para conferir.
         </p>
       )}
 
-      <input
+      <SearchInput
+        label="Filtrar contas"
+        placeholder="Filtrar por mesa, cliente, funcionário ou pagamento (ex.: pix)"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="🔍 Filtrar por mesa, cliente, funcionário ou pagamento (ex: pix)..."
-        className="w-full px-4 py-2.5 rounded-xl border mb-4 text-sm"
-        style={{ borderColor: '#d9cfc2', background: '#fff' }}
       />
 
       {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: '#f5f0eb' }} />
-          ))}
-        </div>
+        <SkeletonList rows={3} />
       ) : accounts.length === 0 ? (
-        <p className="text-center py-12" style={{ color: '#8a7060' }}>
-          {search ? 'Nenhuma conta encontrada com esse filtro.' : 'Nenhuma mesa fechada no período.'}
-        </p>
+        <EmptyState
+          icon={ReceiptText}
+          title={search ? 'Nenhuma conta com esse filtro' : 'Nenhuma conta fechada no período'}
+          description={search ? 'Tente outro termo.' : 'Mude o período para ver outros dias.'}
+        />
       ) : (
-        <div className="space-y-2">
+        <ul className="space-y-2">
           {accounts.map((a) => {
             const expanded = open === a.id;
+            const panelId = `account-${a.id}`;
             return (
-              <div
+              <Card
+                as="li"
                 key={a.id}
-                className="rounded-2xl overflow-hidden"
-                style={{
-                  background: '#fff9f2',
-                  border: `1px solid ${a.divergent ? 'rgba(217,83,79,0.5)' : '#d9cfc2'}`,
-                }}
+                padding="none"
+                tone={a.divergent ? 'danger' : 'default'}
+                className="overflow-hidden"
               >
                 <button
+                  type="button"
                   onClick={() => setOpen(expanded ? null : a.id)}
-                  className="w-full text-left p-3 sm:p-4 flex flex-wrap items-center gap-x-4 gap-y-1"
+                  aria-expanded={expanded}
+                  aria-controls={panelId}
+                  className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 p-3 text-left hover:bg-surface-2/60 sm:p-4"
                 >
-                  <span className="text-lg" style={{ color: '#c45c2a' }}>
-                    {expanded ? '▾' : '▸'}
-                  </span>
+                  <Icon
+                    icon={ChevronDown}
+                    className={cx('text-ink-muted transition-transform', expanded && 'rotate-180')}
+                  />
                   <div className="min-w-[120px]">
-                    <p className="font-semibold text-[#2a1f14]">Mesa {a.tableIdentifier}</p>
-                    {a.clientName && (
-                      <p className="text-xs" style={{ color: '#8a7060' }}>
-                        👤 {a.clientName}
-                      </p>
-                    )}
+                    <p className="font-semibold text-ink">Mesa {a.tableIdentifier}</p>
+                    {a.clientName && <p className="text-sm text-ink-muted">{a.clientName}</p>}
                   </div>
-                  <div
-                    className="text-xs flex-1 basis-full sm:basis-auto min-w-0 sm:min-w-[180px] order-last sm:order-none"
-                    style={{ color: '#7a6650' }}
-                  >
-                    <p>
-                      {multiDay ? dateTime(a.openedAt) : time(a.openedAt)} →{' '}
-                      {multiDay ? dateTime(a.closedAt) : time(a.closedAt)}{' '}
-                      <span style={{ color: '#8a7060' }}>({duration(a.openedAt, a.closedAt)})</span>
+                  <div className="order-last min-w-0 flex-1 basis-full text-sm text-ink-muted sm:order-none sm:min-w-[180px] sm:basis-auto">
+                    <p className="tabular-nums">
+                      {multiDay ? dateTime(a.openedAt) : time(a.openedAt)} até{' '}
+                      {multiDay ? dateTime(a.closedAt) : time(a.closedAt)} ({duration(a.openedAt, a.closedAt)}
+                      )
                     </p>
                     <p>
-                      Fechada por <strong>{a.closedBy}</strong> · {a.orders.length}{' '}
+                      Fechada por <strong className="text-ink">{a.closedBy}</strong> · {a.orders.length}{' '}
                       {a.orders.length === 1 ? 'pedido' : 'pedidos'}
                     </p>
-                    {a.payments.length > 0 && (
-                      <p>
-                        {a.payments
-                          .map((p) => `${PAYMENT_ICON[p.method] ?? ''} ${paymentText(p)}`)
-                          .join(' + ')}
-                      </p>
-                    )}
+                    {a.payments.length > 0 && <p>{a.payments.map(paymentText).join(' + ')}</p>}
                   </div>
-                  {a.divergent && (
-                    <span
-                      className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
-                      style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
-                    >
-                      ⚠ divergência
-                    </span>
-                  )}
-                  <span className="font-bold text-lg ml-auto sm:ml-0" style={{ color: '#c45c2a' }}>
+                  {a.divergent && <Badge tone="danger">Divergência</Badge>}
+                  <span className="ml-auto text-lg font-bold text-accent-strong tabular-nums sm:ml-0">
                     {money(a.total)}
                   </span>
                 </button>
 
                 {expanded && (
-                  <div className="px-3 sm:px-4 pb-4 pt-1 border-t" style={{ borderColor: '#ece3d8' }}>
+                  <div id={panelId} className="border-t border-hairline px-3 pb-4 pt-1 sm:px-4">
                     {a.orders.map((o) => (
                       <div key={o.id} className="mt-3">
-                        <p className="text-xs font-semibold mb-1" style={{ color: '#7a6650' }}>
-                          Pedido às {time(o.createdAt)} · lançado por {o.waiter}
+                        <p className="mb-1 text-sm font-semibold text-ink-muted">
+                          Pedido das {time(o.createdAt)}, lançado por {o.waiter}
                         </p>
                         <table className="w-full text-sm">
+                          <caption className="sr-only">Itens do pedido das {time(o.createdAt)}</caption>
                           <tbody>
                             {o.items.map((it, i) => (
-                              <tr
-                                key={i}
-                                className="border-b last:border-0"
-                                style={{ borderColor: '#f0e8de' }}
-                              >
-                                <td className="py-1 pr-2 text-[#2a1f14]">
+                              <tr key={i} className="border-b border-hairline last:border-0">
+                                <td className="py-1 pr-2 text-ink">
                                   {it.productName}
                                   {it.notes && (
-                                    <span className="block text-xs italic" style={{ color: '#b8741f' }}>
-                                      ↳ {it.notes}
-                                    </span>
+                                    <span className="block text-xs text-warning">Obs.: {it.notes}</span>
                                   )}
                                 </td>
-                                <td
-                                  className="py-1 text-right whitespace-nowrap"
-                                  style={{ color: '#7a6650' }}
-                                >
+                                <td className="whitespace-nowrap py-1 text-right text-ink-muted tabular-nums">
                                   {it.isMeat ? weight(it.quantity) : `${it.quantity} un`}
                                 </td>
-                                <td
-                                  className="hidden sm:table-cell py-1 pl-3 text-right whitespace-nowrap text-xs"
-                                  style={{ color: '#8a7060' }}
-                                >
+                                <td className="hidden whitespace-nowrap py-1 pl-3 text-right text-xs text-ink-muted tabular-nums sm:table-cell">
                                   {it.isMeat ? `${money(it.unitPrice)}/kg` : `${money(it.unitPrice)} cada`}
                                 </td>
-                                <td className="py-1 pl-3 text-right whitespace-nowrap font-medium text-[#2a1f14]">
+                                <td className="whitespace-nowrap py-1 pl-3 text-right font-medium text-ink tabular-nums">
                                   {money(it.subtotal)}
                                 </td>
                               </tr>
@@ -287,70 +244,64 @@ export default function ClosedAccountsView() {
                         </table>
                       </div>
                     ))}
-                    <div
-                      className="mt-3 pt-2 border-t text-sm space-y-0.5"
-                      style={{ borderColor: '#ece3d8' }}
-                    >
+                    <dl className="mt-3 space-y-0.5 border-t border-hairline pt-2 text-sm tabular-nums">
                       <div className="flex justify-between">
-                        <span style={{ color: '#7a6650' }}>Subtotal</span>
-                        <span>{money(a.subtotal)}</span>
+                        <dt className="text-ink-muted">Subtotal</dt>
+                        <dd>{money(a.subtotal)}</dd>
                       </div>
                       <div className="flex justify-between">
-                        <span style={{ color: '#7a6650' }}>Taxa de serviço (10%)</span>
-                        <span>{money(a.serviceFee)}</span>
+                        <dt className="text-ink-muted">Taxa de serviço ({FEE_PERCENT}%)</dt>
+                        <dd>{money(a.serviceFee)}</dd>
                       </div>
                       <div className="flex justify-between font-bold">
-                        <span>Total cobrado</span>
-                        <span style={{ color: '#c45c2a' }}>{money(a.total)}</span>
+                        <dt>Total cobrado</dt>
+                        <dd className="text-accent-strong">{money(a.total)}</dd>
                       </div>
-                      {a.payments.length > 0 ? (
-                        <div className="pt-2">
-                          <p className="text-xs font-semibold mb-0.5" style={{ color: '#7a6650' }}>
-                            Pagamento
-                          </p>
+                    </dl>
+                    {a.payments.length > 0 ? (
+                      <div className="pt-2 text-sm">
+                        <p className="mb-0.5 font-semibold text-ink-muted">Pagamento</p>
+                        <ul>
                           {a.payments.map((p, i) => (
-                            <div key={i} className="flex justify-between text-sm">
+                            <li key={i} className="flex justify-between tabular-nums">
                               <span>
-                                {PAYMENT_ICON[p.method]} {paymentText(p)}
+                                {paymentText(p)}
                                 {p.method === 'CREDITO' && p.installments > 1 && (
-                                  <span className="text-xs" style={{ color: '#8a7060' }}>
+                                  <span className="text-xs text-ink-muted">
                                     {' '}
-                                    (de {money(Math.round(p.amount / p.installments))})
+                                    de {money(installmentValue(p.amount, p.installments))}
                                   </span>
                                 )}
                               </span>
                               <span>{money(p.amount)}</span>
-                            </div>
+                            </li>
                           ))}
-                        </div>
-                      ) : (
-                        a.total > 0 && (
-                          <p className="text-xs pt-1" style={{ color: '#8a7060' }}>
-                            Forma de pagamento não registrada.
-                          </p>
-                        )
-                      )}
-                      {a.divergent && (
-                        <p className="text-xs pt-1" style={{ color: '#d9534f' }}>
-                          ⚠ Conferir: pedidos somam {money(a.orders.reduce((s, o) => s + o.subtotal, 0))}{' '}
-                          (subtotal cobrado {money(a.subtotal)})
-                          {a.payments.length > 0 && (
-                            <>
-                              {' '}
-                              e os pagamentos somam {money(a.payments.reduce((s, p) => s + p.amount, 0))}{' '}
-                              (total {money(a.total)})
-                            </>
-                          )}
-                          .
-                        </p>
-                      )}
-                    </div>
+                        </ul>
+                      </div>
+                    ) : (
+                      a.total > 0 && (
+                        <p className="pt-1 text-sm text-ink-muted">Forma de pagamento não registrada.</p>
+                      )
+                    )}
+                    {a.divergent && (
+                      <p className="pt-2 text-sm text-danger">
+                        Conferir: os pedidos somam {money(a.orders.reduce((s, o) => s + o.subtotal, 0))} e o
+                        subtotal cobrado foi {money(a.subtotal)}
+                        {a.payments.length > 0 && (
+                          <>
+                            ; os pagamentos somam {money(a.payments.reduce((s, p) => s + p.amount, 0))} para
+                            um total de {money(a.total)}
+                          </>
+                        )}
+                        .
+                      </p>
+                    )}
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

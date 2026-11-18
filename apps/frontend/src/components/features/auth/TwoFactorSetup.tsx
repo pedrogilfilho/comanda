@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Copy, Download, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { errorMessage } from '@/services/http';
 import { TwoFactorSetup as SetupData } from '@/services/auth';
+import Button, { buttonClass } from '@/components/ui/Button';
 import CodeInput from '@/components/ui/CodeInput';
+import Icon from '@/components/ui/Icon';
+import Skeleton from '@/components/ui/Skeleton';
 
 interface TwoFactorSetupProps {
   start: () => Promise<SetupData>; // gera o QR Code
@@ -15,7 +19,7 @@ interface TwoFactorSetupProps {
   username?: string; // vai no arquivo de códigos baixado
 }
 
-// Passo a passo: escanear o QR Code → digitar o código → guardar os códigos de recuperação
+// Passo a passo: escanear o QR Code, digitar o código, guardar os códigos de recuperação
 export default function TwoFactorSetup({
   start,
   confirm,
@@ -43,7 +47,8 @@ export default function TwoFactorSetup({
       });
   }, [start, onCancel]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (code.length !== 6) {
       toast.error('Digite os 6 dígitos que aparecem no app');
       return;
@@ -52,9 +57,9 @@ export default function TwoFactorSetup({
     try {
       const res = await confirm(code);
       setRecoveryCodes(res.recoveryCodes);
-      toast.success('Verificação em 2 etapas ativada!');
-    } catch (e) {
-      toast.error(errorMessage(e, 'Código inválido'));
+      toast.success('Verificação em 2 etapas ativada');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Código inválido'));
       setCode('');
     } finally {
       setBusy(false);
@@ -106,74 +111,54 @@ export default function TwoFactorSetup({
     toast.success('Arquivo com os códigos baixado');
   };
 
-  const muted = { color: '#7a6650' };
-
   // Passo 3: códigos de recuperação (aparecem uma única vez)
   if (recoveryCodes) {
     return (
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-            Guarde seus códigos de recuperação
-          </h3>
-          <p className="text-sm mt-1" style={muted}>
+          <h2 className="font-display text-lg font-bold text-ink">Guarde seus códigos de recuperação</h2>
+          <p className="text-sm text-ink-muted mt-1">
             Se perder o celular, use um destes códigos no lugar do código do app. Cada um vale{' '}
             <strong>uma vez só</strong>. Eles não aparecem de novo: baixe o arquivo, copie ou tire um print e
             guarde em lugar seguro.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: '#f5f0eb' }}>
+        <ul className="grid grid-cols-2 gap-2 rounded-md bg-surface-2 p-3">
           {recoveryCodes.map((c) => (
-            <code
-              key={c}
-              className="text-center font-mono text-sm sm:text-base font-semibold py-1 text-[#2a1f14] break-all"
-            >
-              {c}
-            </code>
+            <li key={c} className="text-center">
+              <code className="font-mono text-base font-semibold text-ink break-all">{c}</code>
+            </li>
           ))}
-        </div>
+        </ul>
         <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={downloadCodes}
-            className="py-2 rounded-lg text-sm font-semibold"
-            style={{ background: '#2a1f14', color: '#faf6ef' }}
-          >
-            ⬇ Baixar códigos
-          </button>
-          <button
-            onClick={copyCodes}
-            className="py-2 rounded-lg text-sm font-semibold border"
-            style={{ borderColor: '#d9cfc2', color: '#7a6650' }}
-          >
-            📋 Copiar
-          </button>
+          <Button variant="secondary" icon={Download} onClick={downloadCodes}>
+            Baixar códigos
+          </Button>
+          <Button variant="secondary" icon={Copy} onClick={copyCodes}>
+            Copiar códigos
+          </Button>
         </div>
-        <label className="flex items-start gap-2 text-sm cursor-pointer" style={{ color: '#2a1f14' }}>
+        <label className="flex min-h-tap cursor-pointer items-center gap-3 text-sm text-ink">
           <input
             type="checkbox"
             checked={saved}
             onChange={(e) => setSaved(e.target.checked)}
-            className="mt-0.5 w-4 h-4 flex-shrink-0"
+            className="h-5 w-5 flex-shrink-0 accent-[rgb(var(--accent-strong))]"
           />
           Já guardei os códigos em um lugar seguro
         </label>
-        <button
-          onClick={onFinish}
-          disabled={!saved}
-          className="w-full py-3 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: '#3d5c3a' }}
-        >
-          Continuar
-        </button>
+        <Button block onClick={onFinish} disabled={!saved}>
+          Concluir configuração
+        </Button>
       </div>
     );
   }
 
-  // Passo 1 e 2: QR Code + código
+  // Passos 1 e 2: QR Code e código
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleConfirm} className="space-y-4">
       {intro}
-      <ol className="text-sm space-y-1 list-decimal pl-5" style={muted}>
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-ink-muted">
         <li>
           Instale no celular o <strong>Google Authenticator</strong> ou o{' '}
           <strong>Microsoft Authenticator</strong>.
@@ -190,64 +175,55 @@ export default function TwoFactorSetup({
           <img
             src={data.qrCode}
             alt="QR Code para o app autenticador"
-            className="w-48 h-48 sm:w-52 sm:h-52 rounded-xl bg-white p-2"
-            style={{ border: '1px solid #d9cfc2' }}
+            className="h-48 w-48 rounded-md border border-hairline bg-white p-2 sm:h-52 sm:w-52"
           />
         ) : (
-          <div
-            className="w-48 h-48 sm:w-52 sm:h-52 rounded-xl animate-pulse"
-            style={{ background: '#f5f0eb' }}
-          />
+          <Skeleton className="h-48 w-48 rounded-md sm:h-52 sm:w-52" />
         )}
       </div>
 
       {data && (
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           {/* No celular não dá para escanear a própria tela: o link abre o app direto */}
           <a
             href={data.otpauthUrl}
-            className="sm:hidden block w-full py-2.5 rounded-lg text-sm font-semibold border"
-            style={{ borderColor: '#d9cfc2', color: '#2a1f14' }}
+            className={buttonClass({ variant: 'secondary', block: true, className: 'sm:hidden' })}
           >
-            📲 Abrir no app autenticador
+            <Icon icon={Smartphone} />
+            Abrir no app autenticador
           </a>
           {showKey ? (
-            <p className="text-xs" style={muted}>
+            <p className="text-sm text-ink-muted">
               Chave para digitar no app:
-              <code className="block mt-1 font-mono text-sm font-semibold text-[#2a1f14] break-all select-all">
+              <code className="mt-1 block select-all break-all font-mono text-sm font-semibold text-ink">
                 {data.secret}
               </code>
             </p>
           ) : (
-            <button onClick={() => setShowKey(true)} className="text-xs underline" style={muted}>
-              Está usando o próprio celular? Mostrar a chave para digitar
-            </button>
+            <Button variant="ghost" size="sm" onClick={() => setShowKey(true)}>
+              Mostrar a chave para digitar
+            </Button>
           )}
         </div>
       )}
 
-      <CodeInput value={code} onChange={setCode} disabled={!data || busy} />
+      <CodeInput
+        value={code}
+        onChange={setCode}
+        disabled={!data || busy}
+        label="Código de 6 dígitos do app"
+      />
 
-      <div className="flex gap-3">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         {onCancel && (
-          <button
-            onClick={onCancel}
-            disabled={busy}
-            className="flex-1 py-3 rounded-xl font-semibold"
-            style={{ background: '#f0f0f0', color: '#7a6650' }}
-          >
-            Cancelar
-          </button>
+          <Button variant="secondary" onClick={onCancel} disabled={busy}>
+            Voltar
+          </Button>
         )}
-        <button
-          onClick={handleConfirm}
-          disabled={!data || busy}
-          className="flex-1 py-3 rounded-xl font-semibold text-white disabled:opacity-60"
-          style={{ background: '#c45c2a' }}
-        >
-          {busy ? 'Verificando…' : 'Ativar'}
-        </button>
+        <Button type="submit" disabled={!data} loading={busy}>
+          Ativar verificação
+        </Button>
       </div>
-    </div>
+    </form>
   );
 }

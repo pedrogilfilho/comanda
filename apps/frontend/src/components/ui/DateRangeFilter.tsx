@@ -1,6 +1,9 @@
 'use client';
 
+import { useId } from 'react';
 import { todayISO, daysAgoISO } from '@/lib/format';
+import { cx } from '@/lib/cx';
+import { inputClass } from './Field';
 
 interface DateRangeFilterProps {
   from: string;
@@ -15,60 +18,67 @@ const SHORTCUTS = [
   { label: '30 dias', range: () => ({ from: daysAgoISO(29), to: todayISO() }) },
 ];
 
+// Período com datas e atalhos; no celular as duas datas ficam lado a lado sem passar da borda
 export default function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
-  const input =
-    'date-input block w-full min-w-0 max-w-full px-2 sm:px-3 py-2 rounded-lg border text-sm bg-white';
+  const id = useId();
   return (
-    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 w-full sm:w-auto min-w-0">
-      {/* Celular: 2 colunas iguais que nunca passam da borda */}
+    <fieldset className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3 w-full sm:w-auto min-w-0">
+      <legend className="sr-only">Período</legend>
       <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:flex min-w-0">
         <div className="min-w-0 sm:w-40">
-          <label className="block text-xs font-medium mb-1" style={{ color: '#7a6650' }}>
+          <label htmlFor={`${id}-from`} className="block text-sm font-medium text-ink mb-1.5">
             De
           </label>
           <input
+            id={`${id}-from`}
             type="date"
             value={from}
             max={to}
             onChange={(e) => e.target.value && onChange({ from: e.target.value, to })}
-            className={input}
-            style={{ borderColor: '#d9cfc2' }}
+            className={inputClass(false, 'date-input px-2 sm:px-3')}
           />
         </div>
         <div className="min-w-0 sm:w-40">
-          <label className="block text-xs font-medium mb-1" style={{ color: '#7a6650' }}>
+          <label htmlFor={`${id}-to`} className="block text-sm font-medium text-ink mb-1.5">
             Até
           </label>
           <input
+            id={`${id}-to`}
             type="date"
             value={to}
             min={from}
             max={todayISO()}
             onChange={(e) => e.target.value && onChange({ from, to: e.target.value })}
-            className={input}
-            style={{ borderColor: '#d9cfc2' }}
+            className={inputClass(false, 'date-input px-2 sm:px-3')}
           />
         </div>
       </div>
-      <div className="flex w-full sm:w-auto gap-1 p-1 rounded-xl" style={{ background: '#f0e8de' }}>
+      <div
+        className="flex w-full sm:w-auto gap-1 rounded-md bg-surface-2 p-1"
+        role="group"
+        aria-label="Atalhos de período"
+      >
         {SHORTCUTS.map((s) => {
           const r = s.range();
           const active = r.from === from && r.to === to;
           return (
             <button
               key={s.label}
+              type="button"
+              aria-pressed={active}
               onClick={() => onChange(r)}
-              className="flex-1 sm:flex-none px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
-              style={{
-                background: active ? '#fff9f2' : 'transparent',
-                color: active ? '#2a1f14' : '#7a6650',
-              }}
+              className={cx(
+                'flex-1 sm:flex-none min-h-tap sm:min-h-9 px-3 rounded-sm text-sm font-semibold whitespace-nowrap transition-colors',
+                active
+                  ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(var(--ink)/0.12)]'
+                  : 'text-ink-muted hover:text-ink',
+              )}
             >
               {s.label}
             </button>
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
 }

@@ -1,17 +1,9 @@
-import { PRODUCT_CATEGORIES, type PaymentMethod } from '@comanda/shared';
+import { PRODUCT_CATEGORIES } from '@comanda/shared';
 
 // Rótulos e regras de preço vêm do @comanda/shared (mesma fonte do backend)
 export { ROLE_LABEL, CATEGORY_LABEL, PAYMENT_LABEL, ORDER_STATUS_LABEL, meatSubtotal } from '@comanda/shared';
 
 export const CATEGORY_ORDER = PRODUCT_CATEGORIES;
-
-// Ícone ao lado do nome da forma de pagamento (só visual)
-export const PAYMENT_ICON: Record<PaymentMethod, string> = {
-  DINHEIRO: '💵',
-  PIX: '⚡',
-  DEBITO: '💳',
-  CREDITO: '💳',
-};
 
 export const money = (cents: number) =>
   (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

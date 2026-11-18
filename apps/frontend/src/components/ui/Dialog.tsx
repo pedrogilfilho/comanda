@@ -1,29 +1,35 @@
 'use client';
 
 import { useEffect, useId, useRef } from 'react';
+import { X } from 'lucide-react';
+import { cx } from '@/lib/cx';
+import IconButton from './IconButton';
 
 interface DialogProps {
   title: React.ReactNode;
+  description?: React.ReactNode;
   onClose: () => void;
   children: React.ReactNode;
   // Conteúdo fixo abaixo do título (ex.: busca) e rodapé fixo (ex.: botões); o meio rola
   header?: React.ReactNode;
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg';
-  // false enquanto salva: Esc, clique fora e o × não fecham
+  // false enquanto salva: Esc, clique fora e o X não fecham
   dismissible?: boolean;
 }
 
-const SIZE = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-2xl' };
+const SIZE = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-2xl' };
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-// Pilha de diálogos abertos: só o de cima responde ao teclado (um ConfirmModal sobre outro diálogo)
+// Pilha de diálogos abertos: só o de cima responde ao teclado (uma confirmação sobre outro diálogo)
 const stack: string[] = [];
 
+// Diálogo no computador, folha que sobe de baixo (sheet) no celular
 export default function Dialog({
   title,
+  description,
   onClose,
   children,
   header,
@@ -33,6 +39,7 @@ export default function Dialog({
 }: DialogProps) {
   const id = useId();
   const titleId = `${id}-title`;
+  const descId = `${id}-desc`;
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const dismissibleRef = useRef(dismissible);
@@ -90,7 +97,7 @@ export default function Dialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/50 sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && dismissible) onClose();
       }}
@@ -100,27 +107,27 @@ export default function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={`bg-white rounded-t-2xl sm:rounded-2xl w-full ${SIZE[size]} max-h-[94vh] sm:max-h-[90vh] flex flex-col outline-none`}
+        className={cx(
+          'flex w-full flex-col bg-surface outline-none',
+          'max-h-[94vh] rounded-t-lg sm:max-h-[90vh] sm:rounded-lg',
+          SIZE[size],
+        )}
       >
-        <div className="px-5 sm:px-6 pt-5 sm:pt-6 pb-3">
+        <div className="px-5 sm:px-6 pt-4 sm:pt-5 pb-3">
           <div className="flex items-start justify-between gap-3">
-            <h2
-              id={titleId}
-              className="text-lg sm:text-xl font-bold text-[#2a1f14] min-w-0 break-words"
-              style={{ fontFamily: 'Georgia, serif' }}
-            >
-              {title}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={!dismissible}
-              className="-mr-2 -mt-1 w-10 h-10 flex-shrink-0 rounded-lg text-2xl leading-none text-[#7a6650] hover:bg-[#f5f0eb] disabled:opacity-40"
-              aria-label="Fechar"
-            >
-              ×
-            </button>
+            <div className="min-w-0 pt-2">
+              <h2 id={titleId} className="font-display text-xl font-bold text-ink break-words">
+                {title}
+              </h2>
+              {description && (
+                <p id={descId} className="text-sm text-ink-muted mt-1">
+                  {description}
+                </p>
+              )}
+            </div>
+            <IconButton icon={X} label="Fechar" onClick={onClose} disabled={!dismissible} className="-mr-2" />
           </div>
           {header && <div className="mt-3">{header}</div>}
         </div>
@@ -128,14 +135,16 @@ export default function Dialog({
         <div className="flex-1 overflow-y-auto px-5 sm:px-6 pb-5 sm:pb-6">{children}</div>
 
         {footer && (
-          <div
-            className="border-t px-5 sm:px-6 py-3 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4"
-            style={{ borderColor: '#e8ddd2' }}
-          >
+          <div className="border-t border-hairline px-5 sm:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4">
             {footer}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+// Rodapé padrão: no celular os botões empilham (principal em cima), no computador ficam lado a lado
+export function DialogActions({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{children}</div>;
 }

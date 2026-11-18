@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { KeyRound, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { errorMessage } from '@/services/http';
 import {
@@ -12,7 +13,13 @@ import {
   disableTwoFactor,
 } from '@/services/auth';
 import TwoFactorSetup from '@/components/features/auth/TwoFactorSetup';
+import Badge from '@/components/ui/Badge';
+import Button, { buttonClass } from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 import CodeInput from '@/components/ui/CodeInput';
+import Icon from '@/components/ui/Icon';
+import PageTitle from '@/components/ui/PageTitle';
+import Skeleton from '@/components/ui/Skeleton';
 import { useSession } from '@/hooks/useSession';
 
 export default function SecurityPage() {
@@ -60,29 +67,23 @@ export default function SecurityPage() {
     }
   };
 
-  const card = { background: '#fff9f2', border: '1px solid #d9cfc2' };
-
   return (
-    <div className="max-w-lg mx-auto">
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <h2 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-          Segurança da conta
-        </h2>
-        <Link
-          href="/"
-          className="text-xs px-3 py-1.5 rounded-full font-semibold flex-shrink-0"
-          style={{ background: '#f0f0f0', color: '#7a6650' }}
-        >
-          ← Voltar
-        </Link>
-      </div>
+    <div className="mx-auto max-w-lg space-y-5">
+      <PageTitle
+        title="Segurança da conta"
+        actions={
+          <Link href="/" className={buttonClass({ variant: 'secondary', size: 'sm' })}>
+            Voltar ao início
+          </Link>
+        }
+      />
 
-      <div className="rounded-2xl p-4 sm:p-5" style={card}>
+      <Card as="section" aria-labelledby="two-factor-title">
         {!status ? (
           <div className="space-y-3">
-            <div className="h-5 w-2/3 rounded animate-pulse" style={{ background: '#f0e8de' }} />
-            <div className="h-4 w-full rounded animate-pulse" style={{ background: '#f0e8de' }} />
-            <div className="h-10 w-full rounded-xl animate-pulse" style={{ background: '#f0e8de' }} />
+            <Skeleton className="h-5 w-2/3 rounded-sm" />
+            <Skeleton className="h-4 w-full rounded-sm" />
+            <Skeleton className="h-11 w-full rounded-md" />
           </div>
         ) : mode === 'setup' ? (
           <TwoFactorSetup
@@ -98,117 +99,100 @@ export default function SecurityPage() {
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-bold text-[#2a1f14]">🔒 Verificação em 2 etapas</h3>
-              <span
-                className="text-xs px-3 py-1 rounded-full font-semibold"
-                style={
-                  status.enabled
-                    ? { background: 'rgba(61,92,58,0.15)', color: '#3d5c3a' }
-                    : { background: 'rgba(0,0,0,0.06)', color: '#7a6650' }
-                }
-              >
-                {status.enabled ? '✓ Ativada' : 'Desativada'}
-              </span>
+              <h2 id="two-factor-title" className="flex items-center gap-2 font-semibold text-ink">
+                <Icon icon={ShieldCheck} className="text-ink-muted" />
+                Verificação em 2 etapas
+              </h2>
+              <Badge tone={status.enabled ? 'success' : 'neutral'}>
+                {status.enabled ? 'Ativada' : 'Desativada'}
+              </Badge>
             </div>
-            <p className="text-sm" style={{ color: '#7a6650' }}>
+            <p className="text-sm text-ink-muted">
               Além da senha, o login pede um código de 6 dígitos gerado pelo app autenticador do seu celular.
               Assim, mesmo que alguém descubra sua senha, não consegue entrar.
             </p>
 
             {status.required && (
-              <p
-                className="text-xs p-3 rounded-xl"
-                style={{ background: 'rgba(232,160,74,0.12)', color: '#b8741f' }}
-              >
-                Obrigatória para Administrador e Gerente. Se perder o celular, use um código de recuperação ou
+              <p className="rounded-md bg-warning/10 p-3 text-sm text-warning">
+                Obrigatória para administrador e gerente. Se perder o celular, use um código de recuperação ou
                 peça a outro administrador para resetar.
               </p>
             )}
 
             {status.enabled && (
-              <p className="text-xs" style={{ color: status.recoveryCodesLeft <= 2 ? '#d9534f' : '#8a7060' }}>
+              <p className={status.recoveryCodesLeft <= 2 ? 'text-sm text-danger' : 'text-sm text-ink-muted'}>
                 Códigos de recuperação restantes: <strong>{status.recoveryCodesLeft}</strong>
                 {status.recoveryCodesLeft <= 2 &&
-                  ' (estão acabando: peça ao administrador para resetar e configure de novo para gerar códigos novos)'}
+                  '. Estão acabando: peça ao administrador para resetar e configure de novo para gerar códigos novos.'}
               </p>
             )}
 
             {mode === 'disable' ? (
               <div className="space-y-3 pt-1">
-                <p className="text-sm font-semibold text-[#2a1f14]">
+                <label htmlFor="disable-code" className="block text-sm font-semibold text-ink">
                   {useRecovery
-                    ? 'Digite um código de recuperação para confirmar:'
-                    : 'Digite o código atual do app para confirmar:'}
-                </p>
-                <CodeInput value={code} onChange={setCode} recovery={useRecovery} disabled={busy} autoFocus />
-                <button
+                    ? 'Digite um código de recuperação para confirmar'
+                    : 'Digite o código atual do app para confirmar'}
+                </label>
+                <CodeInput
+                  id="disable-code"
+                  value={code}
+                  onChange={setCode}
+                  recovery={useRecovery}
+                  disabled={busy}
+                  autoFocus
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setUseRecovery(!useRecovery);
                     setCode('');
                   }}
-                  className="text-xs underline"
-                  style={{ color: '#7a6650' }}
                 >
                   {useRecovery ? 'Usar o código do app' : 'Usar código de recuperação'}
-                </button>
-                <div className="flex gap-3">
-                  <button
-                    onClick={backToView}
-                    disabled={busy}
-                    className="flex-1 py-2.5 rounded-xl font-semibold"
-                    style={{ background: '#f0f0f0', color: '#7a6650' }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleDisable}
-                    disabled={busy}
-                    className="flex-1 py-2.5 rounded-xl font-semibold text-white disabled:opacity-60"
-                    style={{ background: '#d9534f' }}
-                  >
-                    {busy ? 'Aguarde…' : 'Desativar'}
-                  </button>
+                </Button>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button variant="secondary" onClick={backToView} disabled={busy}>
+                    Voltar
+                  </Button>
+                  <Button variant="danger" onClick={handleDisable} loading={busy}>
+                    Desativar verificação
+                  </Button>
                 </div>
               </div>
             ) : !status.enabled ? (
-              <button
-                onClick={() => setMode('setup')}
-                className="w-full py-3 rounded-xl font-semibold text-white"
-                style={{ background: '#3d5c3a' }}
-              >
+              <Button block onClick={() => setMode('setup')}>
                 Ativar verificação em 2 etapas
-              </button>
+              </Button>
             ) : !status.required ? (
-              <button
-                onClick={() => setMode('disable')}
-                className="w-full py-3 rounded-xl font-semibold"
-                style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
-              >
+              <Button variant="danger" block onClick={() => setMode('disable')}>
                 Desativar verificação em 2 etapas
-              </button>
+              </Button>
             ) : null}
           </div>
         )}
-      </div>
+      </Card>
 
-      <div
-        className="rounded-2xl p-4 sm:p-5 mt-4 flex flex-wrap items-center justify-between gap-3"
-        style={card}
+      <Card
+        as="section"
+        aria-labelledby="password-title"
+        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h3 className="font-bold text-[#2a1f14]">🔑 Senha</h3>
-          <p className="text-sm" style={{ color: '#7a6650' }}>
-            Troque a senha de acesso.
-          </p>
+          <h2 id="password-title" className="flex items-center gap-2 font-semibold text-ink">
+            <Icon icon={KeyRound} className="text-ink-muted" />
+            Senha
+          </h2>
+          <p className="text-sm text-ink-muted mt-1">Troque a senha de acesso.</p>
         </div>
         <Link
           href="/change-password"
-          className="w-full sm:w-auto text-center px-4 py-2 rounded-xl text-sm font-semibold border"
-          style={{ borderColor: '#d9cfc2', color: '#7a6650' }}
+          className={buttonClass({ variant: 'secondary', className: 'w-full sm:w-auto' })}
         >
           Trocar senha
         </Link>
-      </div>
+      </Card>
     </div>
   );
 }

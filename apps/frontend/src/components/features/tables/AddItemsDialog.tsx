@@ -1,13 +1,22 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { Minus, Plus, SearchX } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_MIN_GRAMS, ORDER_NOTE_MAX_LENGTH } from '@comanda/shared';
 import { errorMessage, isApiError } from '@/services/http';
-import { listProducts, Product } from '@/services/products';
+import { listProducts } from '@/services/products';
 import { createOrder } from '@/services/orders';
+import type { Product } from '@/types/api';
 import { money, weight, meatSubtotal, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import EmptyState from '@/components/ui/EmptyState';
+import { Input, inputClass } from '@/components/ui/Field';
+import IconButton from '@/components/ui/IconButton';
+import SearchInput from '@/components/ui/SearchInput';
+import { SkeletonList } from '@/components/ui/Skeleton';
 
 interface CartItem {
   key: string;
@@ -172,55 +181,50 @@ export default function AddItemsDialog({
 
   return (
     <Dialog
-      title={`Adicionar itens · Mesa ${tableIdentifier}`}
+      title={`Adicionar itens à mesa ${tableIdentifier}`}
       onClose={onClose}
       size="lg"
       dismissible={!saving}
       header={
-        <input
-          type="search"
+        <SearchInput
+          label="Buscar no cardápio"
           placeholder="Buscar no cardápio"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2.5 rounded-lg border outline-none"
-          style={{ borderColor: '#d9cfc2' }}
-          aria-label="Buscar no cardápio"
         />
       }
       footer={
         cart.length > 0 ? (
           <div className="space-y-3">
-            <ul className="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto" aria-label="Itens do pedido">
+            <ul className="max-h-40 space-y-2 overflow-y-auto sm:max-h-48" aria-label="Itens do pedido">
               {cart.map((item) => (
                 <li key={item.key}>
-                  <div className="flex flex-wrap justify-between items-center text-sm gap-x-2 gap-y-0.5">
-                    <span className="flex-1 min-w-[45%] text-[#2a1f14]">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 text-sm">
+                    <span className="min-w-[45%] flex-1 text-ink">
                       {item.name}{' '}
-                      <span style={{ color: '#6b5a4a' }}>
+                      <span className="text-ink-muted">
                         {item.isMeat ? weight(item.quantity) : `x${item.quantity}`}
                       </span>
                     </span>
-                    <span className="font-semibold text-[#2a1f14]">{money(item.subtotal)}</span>
+                    <span className="font-semibold text-ink tabular-nums">{money(item.subtotal)}</span>
                     {editingNote !== item.key && (
-                      <button
-                        onClick={() => setEditingNote(item.key)}
-                        className="text-xs"
-                        style={{ color: '#3d5c3a' }}
-                      >
-                        {item.notes ? 'Editar obs.' : 'Adicionar obs.'}
-                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => setEditingNote(item.key)}>
+                        {item.notes ? 'Editar observação' : 'Adicionar observação'}
+                      </Button>
                     )}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger hover:text-danger"
                       onClick={() => setCart((c) => c.filter((i) => i.key !== item.key))}
-                      className="text-xs"
-                      style={{ color: '#b03a2e' }}
+                      aria-label={`Remover ${item.name} do pedido`}
                     >
                       Remover
-                    </button>
+                    </Button>
                   </div>
                   {editingNote === item.key ? (
-                    <div className="flex gap-2 mt-1">
-                      <input
+                    <div className="mt-1 flex gap-2">
+                      <Input
                         autoFocus
                         value={item.notes}
                         maxLength={ORDER_NOTE_MAX_LENGTH}
@@ -228,108 +232,72 @@ export default function AddItemsDialog({
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') setEditingNote(null);
                         }}
-                        placeholder="Ex: com gelo e limão, sem cebola, bem passada"
-                        className="flex-1 px-2 py-1 rounded border text-xs"
-                        style={{ borderColor: '#d9cfc2' }}
+                        placeholder="Ex.: com gelo e limão, sem cebola"
                         aria-label={`Observação de ${item.name}`}
                       />
-                      <button
-                        onClick={() => setEditingNote(null)}
-                        className="px-2 py-1 rounded text-xs font-semibold text-white"
-                        style={{ background: '#3d5c3a' }}
-                      >
-                        OK
-                      </button>
+                      <Button variant="secondary" onClick={() => setEditingNote(null)}>
+                        Salvar
+                      </Button>
                     </div>
                   ) : item.notes.trim() ? (
-                    <p className="text-xs italic mt-0.5" style={{ color: '#9a5f14' }}>
-                      ↳ {item.notes.trim()}
-                    </p>
+                    <p className="mt-0.5 text-xs text-warning">Obs.: {item.notes.trim()}</p>
                   ) : null}
                 </li>
               ))}
             </ul>
-            <div className="border-t pt-2 text-sm" style={{ borderColor: '#e8ddd2' }}>
+            <div className="border-t border-hairline pt-2">
               <div className="flex justify-between text-base font-bold">
                 <span>Subtotal do pedido</span>
-                <span style={{ color: '#c45c2a' }}>{money(subtotal)}</span>
+                <span className="text-accent-strong tabular-nums">{money(subtotal)}</span>
               </div>
-              <p className="text-xs mt-0.5" style={{ color: '#6b5a4a' }}>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 A taxa de serviço é somada no fechamento da conta.
               </p>
             </div>
-            <button
-              onClick={handleConfirm}
-              disabled={saving}
-              className="w-full py-3 rounded-lg font-semibold text-white transition-all hover:opacity-90"
-              style={{ background: saving ? 'rgba(196,92,42,0.5)' : '#c45c2a' }}
-            >
-              {saving ? 'Enviando…' : 'Enviar pedido'}
-            </button>
+            <Button block onClick={handleConfirm} loading={saving}>
+              Enviar pedido
+            </Button>
           </div>
         ) : undefined
       }
     >
-      <div className="space-y-4">
-        {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-14 rounded-lg animate-pulse" style={{ background: '#f5f0eb' }} />
-            ))}
-          </div>
-        ) : Object.keys(grouped).length === 0 ? (
-          <p className="text-center py-8 text-[#6b5a4a]">Nenhum item encontrado</p>
-        ) : (
-          CATEGORY_ORDER.filter((cat) => grouped[cat]?.length).map((cat) => (
-            <section key={cat} aria-label={CATEGORY_LABEL[cat]}>
-              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#c45c2a' }}>
+      {loading ? (
+        <SkeletonList rows={4} className="h-16" />
+      ) : Object.keys(grouped).length === 0 ? (
+        <EmptyState icon={SearchX} title="Nenhum item encontrado" description="Tente outro nome." />
+      ) : (
+        <div className="space-y-5">
+          {CATEGORY_ORDER.filter((cat) => grouped[cat]?.length).map((cat) => (
+            <section key={cat} aria-labelledby={`cat-${cat}`}>
+              <h3 id={`cat-${cat}`} className="mb-2 text-sm font-semibold text-ink-muted">
                 {CATEGORY_LABEL[cat]}
-              </p>
-              <div className="space-y-2">
+              </h3>
+              <ul className="space-y-2">
                 {grouped[cat].map((p) => {
                   const min = minGramsOf(p);
                   const left = p.stock - inCart(p.id);
                   const out = left <= 0 || (p.isMeat && left < min);
                   const units = cart.find((i) => i.productId === p.id && !i.isMeat)?.quantity ?? 0;
                   return (
-                    <div
+                    <li
                       key={p.id}
-                      className="flex flex-wrap min-[420px]:flex-nowrap items-center gap-x-3 gap-y-2 p-3 rounded-lg border"
-                      style={{ borderColor: '#e8ddd2', opacity: out ? 0.5 : 1 }}
+                      className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-hairline p-3 min-[420px]:flex-nowrap ${out ? 'opacity-60' : ''}`}
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[#2a1f14] text-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink">
                           {p.name}
-                          {p.lowStock && !out && (
-                            <span
-                              className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
-                              style={{ background: 'rgba(232,160,74,0.18)', color: '#9a5f14' }}
-                            >
-                              últimas unidades
-                            </span>
-                          )}
-                          {out && (
-                            <span
-                              className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
-                              style={{ background: 'rgba(176,58,46,0.12)', color: '#b03a2e' }}
-                            >
-                              esgotado
-                            </span>
-                          )}
+                          {p.lowStock && !out && <Badge tone="warning">Últimas unidades</Badge>}
+                          {out && <Badge tone="danger">Esgotado</Badge>}
                         </p>
-                        {p.description && (
-                          <p className="text-xs truncate" style={{ color: '#6b5a4a' }}>
-                            {p.description}
-                          </p>
-                        )}
-                        <p className="text-xs font-semibold mt-0.5" style={{ color: '#c45c2a' }}>
+                        {p.description && <p className="truncate text-xs text-ink-muted">{p.description}</p>}
+                        <p className="mt-0.5 text-sm font-semibold text-accent-strong">
                           {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg · mínimo ${min} g` : money(p.price)}
                         </p>
                       </div>
 
                       {p.isMeat ? (
-                        <div className="flex items-center gap-2 ml-auto">
-                          <div className="relative">
+                        <div className="ml-auto flex items-center gap-2">
+                          <div className="relative w-28">
                             <input
                               type="number"
                               inputMode="numeric"
@@ -342,68 +310,63 @@ export default function AddItemsDialog({
                                 if (e.key === 'Enter') addMeat(p);
                               }}
                               disabled={out}
-                              className="w-24 pl-2 pr-6 py-1.5 rounded border text-sm"
-                              style={{ borderColor: '#d9cfc2' }}
-                              aria-label={`Gramas de ${p.name} (vazio = ${min} g)`}
+                              className={inputClass(false, 'pr-7')}
+                              aria-label={`Gramas de ${p.name} (vazio vale ${min} g)`}
                             />
-                            <span
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs"
-                              style={{ color: '#6b5a4a' }}
-                            >
+                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-muted">
                               g
                             </span>
                           </div>
-                          <button
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            icon={Plus}
                             onClick={() => addMeat(p)}
                             disabled={out}
-                            className="px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold text-white"
-                            style={{ background: '#3d5c3a' }}
                             aria-label={`Adicionar ${p.name}`}
                           >
                             Adicionar
-                          </button>
+                          </Button>
                         </div>
                       ) : units > 0 ? (
-                        <div className="flex items-center gap-2 ml-auto">
-                          <button
+                        <div className="ml-auto flex items-center gap-1">
+                          <IconButton
+                            icon={Minus}
+                            label={`Tirar um ${p.name}`}
                             onClick={() => changeUnits(p, -1)}
-                            className="w-9 h-9 sm:w-7 sm:h-7 rounded-full font-bold"
-                            style={{ background: '#f0ebe4', color: '#6b5a4a' }}
-                            aria-label={`Tirar um ${p.name}`}
-                          >
-                            −
-                          </button>
-                          <span className="w-5 text-center font-semibold" aria-live="polite">
+                            className="border border-hairline"
+                          />
+                          <span className="w-8 text-center font-semibold tabular-nums" aria-live="polite">
                             {units}
                           </span>
-                          <button
+                          <IconButton
+                            icon={Plus}
+                            label={`Mais um ${p.name}`}
                             onClick={() => changeUnits(p, 1)}
-                            className="w-9 h-9 sm:w-7 sm:h-7 rounded-full font-bold text-white"
-                            style={{ background: '#3d5c3a' }}
-                            aria-label={`Mais um ${p.name}`}
-                          >
-                            +
-                          </button>
+                            className="border border-hairline"
+                          />
                         </div>
                       ) : (
-                        <button
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon={Plus}
+                          className="ml-auto"
                           onClick={() => changeUnits(p, 1)}
                           disabled={out}
-                          className="ml-auto px-3 py-2 sm:py-1.5 rounded-lg text-xs font-semibold text-white"
-                          style={{ background: '#3d5c3a' }}
                           aria-label={`Adicionar ${p.name}`}
                         >
                           Adicionar
-                        </button>
+                        </Button>
                       )}
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </section>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </Dialog>
   );
 }

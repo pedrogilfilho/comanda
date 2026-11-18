@@ -1,57 +1,36 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { BarChart3, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { SERVICE_FEE_RATE } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { getReports, Reports } from '@/services/reports';
-import { money, weight, CATEGORY_LABEL, PAYMENT_LABEL, PAYMENT_ICON, todayISO } from '@/lib/format';
-import DateRangeFilter from '@/components/ui/DateRangeFilter';
+import { money, weight, CATEGORY_LABEL, PAYMENT_LABEL, todayISO } from '@/lib/format';
 import { currentUserName } from '@/lib/pdf/current-user';
+import BarList from '@/components/ui/BarList';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import DateRangeFilter from '@/components/ui/DateRangeFilter';
+import EmptyState from '@/components/ui/EmptyState';
+import PageTitle from '@/components/ui/PageTitle';
+import Skeleton from '@/components/ui/Skeleton';
+import StatTile from '@/components/ui/StatTile';
+import Tabs from '@/components/ui/Tabs';
 
 type ReportKey = 'revenue' | 'payments' | 'employees' | 'beers' | 'meats' | 'categories' | 'ticket';
 
-const REPORTS: { key: ReportKey; icon: string; label: string }[] = [
-  { key: 'revenue', icon: '💰', label: 'Faturamento' },
-  { key: 'payments', icon: '💳', label: 'Formas de Pagamento' },
-  { key: 'employees', icon: '🏆', label: 'Funcionário que Mais Vendeu' },
-  { key: 'beers', icon: '🍺', label: 'Cervejas Mais Vendidas' },
-  { key: 'meats', icon: '🥩', label: 'Carnes com Mais Saída' },
-  { key: 'categories', icon: '📊', label: 'Vendas por Categoria' },
-  { key: 'ticket', icon: '🧾', label: 'Ticket Médio por Mesa' },
+const REPORTS: { key: ReportKey; label: string }[] = [
+  { key: 'revenue', label: 'Faturamento' },
+  { key: 'payments', label: 'Formas de pagamento' },
+  { key: 'employees', label: 'Vendas por funcionário' },
+  { key: 'beers', label: 'Cervejas mais vendidas' },
+  { key: 'meats', label: 'Carnes com mais saída' },
+  { key: 'categories', label: 'Vendas por categoria' },
+  { key: 'ticket', label: 'Ticket médio' },
 ];
 
-function Bars({ rows }: { rows: { label: string; value: number; display: string; hint?: string }[] }) {
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  return (
-    <div className="space-y-3">
-      {rows.map((r, i) => (
-        <div key={r.label}>
-          <div className="flex justify-between gap-3 text-sm mb-1">
-            <span className="text-[#2a1f14] font-medium min-w-0">
-              {i === 0 ? '🥇 ' : ''}
-              {r.label}
-              {r.hint && (
-                <span className="text-xs font-normal" style={{ color: '#8a7060' }}>
-                  {' '}
-                  · {r.hint}
-                </span>
-              )}
-            </span>
-            <span className="font-semibold whitespace-nowrap" style={{ color: '#c45c2a' }}>
-              {r.display}
-            </span>
-          </div>
-          <div className="h-2 rounded-full" style={{ background: '#ece3d8' }}>
-            <div
-              className="h-2 rounded-full"
-              style={{ width: `${(r.value / max) * 100}%`, background: i === 0 ? '#c45c2a' : '#d9a37f' }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+const FEE_PERCENT = Math.round(SERVICE_FEE_RATE * 100);
 
 export default function ReportsView() {
   const [range, setRange] = useState({ from: todayISO(), to: todayISO() });
@@ -91,9 +70,11 @@ export default function ReportsView() {
   };
 
   const empty = (
-    <p className="text-center py-10" style={{ color: '#8a7060' }}>
-      Nenhuma venda fechada no período.
-    </p>
+    <EmptyState
+      icon={BarChart3}
+      title="Nenhuma venda fechada no período"
+      description="Mude o período para ver outros dias."
+    />
   );
   const fmt = (d: string) => d.split('-').reverse().join('/');
   const periodLabel =
@@ -106,32 +87,17 @@ export default function ReportsView() {
         return data.revenue.accounts === 0 ? (
           empty
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs" style={{ color: '#7a6650' }}>
-                Vendas (sem taxa)
-              </p>
-              <p className="text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-                {money(data.revenue.subtotal)}
-              </p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+              <StatTile label="Vendas sem taxa" value={money(data.revenue.subtotal)} />
+              <StatTile
+                label={`Taxa de serviço (${FEE_PERCENT}%)`}
+                value={money(data.revenue.serviceFee)}
+                tone="success"
+              />
+              <StatTile label="Total recebido" value={money(data.revenue.total)} tone="accent" />
             </div>
-            <div>
-              <p className="text-xs" style={{ color: '#7a6650' }}>
-                Taxa de serviço (10%)
-              </p>
-              <p className="text-2xl font-bold" style={{ color: '#3d5c3a', fontFamily: 'Georgia, serif' }}>
-                {money(data.revenue.serviceFee)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: '#7a6650' }}>
-                Total recebido
-              </p>
-              <p className="text-2xl font-bold" style={{ color: '#c45c2a', fontFamily: 'Georgia, serif' }}>
-                {money(data.revenue.total)}
-              </p>
-            </div>
-            <p className="sm:col-span-3 text-xs" style={{ color: '#8a7060' }}>
+            <p className="text-sm text-ink-muted">
               {data.revenue.accounts} {data.revenue.accounts === 1 ? 'conta fechada' : 'contas fechadas'}{' '}
               {periodLabel}.
             </p>
@@ -141,9 +107,9 @@ export default function ReportsView() {
         return data.byPayment.length === 0 ? (
           empty
         ) : (
-          <Bars
+          <BarList
             rows={data.byPayment.map((m) => ({
-              label: `${PAYMENT_ICON[m.method] ?? ''} ${PAYMENT_LABEL[m.method] ?? m.method}`,
+              label: PAYMENT_LABEL[m.method] ?? m.method,
               value: m.amount,
               display: money(m.amount),
               hint: `${m.count} ${m.count === 1 ? 'pagamento' : 'pagamentos'}`,
@@ -154,7 +120,7 @@ export default function ReportsView() {
         return data.topEmployees.length === 0 ? (
           empty
         ) : (
-          <Bars
+          <BarList
             rows={data.topEmployees.map((e) => ({
               label: e.name,
               value: e.subtotal,
@@ -167,7 +133,7 @@ export default function ReportsView() {
         return data.topBeers.length === 0 ? (
           empty
         ) : (
-          <Bars
+          <BarList
             rows={data.topBeers.map((b) => ({
               label: b.name,
               value: b.quantity,
@@ -180,7 +146,7 @@ export default function ReportsView() {
         return data.topMeats.length === 0 ? (
           empty
         ) : (
-          <Bars
+          <BarList
             rows={data.topMeats.map((m) => ({
               label: m.name,
               value: m.grams,
@@ -193,9 +159,9 @@ export default function ReportsView() {
         return data.byCategory.length === 0 ? (
           empty
         ) : (
-          <Bars
+          <BarList
             rows={data.byCategory.map((c) => ({
-              label: CATEGORY_LABEL[c.category] ?? c.category,
+              label: CATEGORY_LABEL[c.category as keyof typeof CATEGORY_LABEL] ?? c.category,
               value: c.subtotal,
               display: money(c.subtotal),
             }))}
@@ -206,16 +172,11 @@ export default function ReportsView() {
           empty
         ) : (
           <div>
-            <p className="text-xs" style={{ color: '#7a6650' }}>
-              Valor médio por conta fechada (com taxa)
-            </p>
-            <p
-              className="text-3xl sm:text-4xl font-bold mt-1"
-              style={{ color: '#c45c2a', fontFamily: 'Georgia, serif' }}
-            >
+            <p className="text-sm text-ink-muted">Valor médio por conta fechada, com taxa</p>
+            <p className="mt-1 font-display text-2xl font-bold text-accent-strong tabular-nums">
               {money(data.averageTicket)}
             </p>
-            <p className="text-xs mt-2" style={{ color: '#8a7060' }}>
+            <p className="mt-2 text-sm text-ink-muted">
               Base: {data.revenue.accounts} {data.revenue.accounts === 1 ? 'conta' : 'contas'} {periodLabel}.
             </p>
           </div>
@@ -223,61 +184,42 @@ export default function ReportsView() {
     }
   };
 
+  const current = REPORTS.find((r) => r.key === selected)!;
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-          Relatórios
-        </h1>
-        <button
-          onClick={handlePdf}
-          disabled={!data || loading || exporting}
-          className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: '#2a1f14', color: '#faf6ef' }}
-          title="Baixa um PDF com todos os relatórios do período"
-        >
-          {exporting ? 'Gerando PDF…' : '⬇ Baixar PDF'}
-        </button>
-      </div>
-
-      <div
-        className="rounded-2xl p-4 mb-5 flex flex-wrap items-end gap-4"
-        style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}
-      >
-        <div className="w-full sm:w-auto sm:min-w-[230px]">
-          <label className="block text-xs font-medium mb-1" style={{ color: '#7a6650' }}>
-            Relatório
-          </label>
-          <select
-            value={selected}
-            onChange={(e) => setSelected(e.target.value as ReportKey)}
-            className="w-full px-3 py-2 rounded-lg border text-sm bg-white"
-            style={{ borderColor: '#d9cfc2' }}
+    <div className="space-y-5">
+      <PageTitle
+        title="Relatórios"
+        subtitle="Só contas já fechadas entram nos números"
+        actions={
+          <Button
+            variant="secondary"
+            icon={Download}
+            onClick={handlePdf}
+            disabled={!data || loading}
+            loading={exporting}
+            title="Baixa um PDF com todos os relatórios do período"
           >
-            {REPORTS.map((r) => (
-              <option key={r.key} value={r.key}>
-                {r.icon} {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <DateRangeFilter from={range.from} to={range.to} onChange={setRange} />
-      </div>
+            Baixar PDF do período
+          </Button>
+        }
+      />
 
-      <div className="rounded-2xl p-4 sm:p-6" style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}>
-        <p className="font-semibold mb-4 text-[#2a1f14]">
-          {REPORTS.find((r) => r.key === selected)?.icon} {REPORTS.find((r) => r.key === selected)?.label}
-        </p>
-        {loading ? (
-          <div className="h-32 rounded-xl animate-pulse" style={{ background: '#f5f0eb' }} />
-        ) : (
-          render()
-        )}
-      </div>
-      <p className="text-xs mt-3" style={{ color: '#8a7060' }}>
-        Os relatórios consideram apenas contas já fechadas. O PDF traz todos os relatórios do período
-        selecionado.
-      </p>
+      <Card>
+        <DateRangeFilter from={range.from} to={range.to} onChange={setRange} />
+      </Card>
+
+      <Tabs
+        label="Relatório"
+        active={selected}
+        onChange={(k) => setSelected(k as ReportKey)}
+        items={REPORTS.map((r) => ({ key: r.key, label: r.label }))}
+      />
+
+      <Card as="section" role="tabpanel" aria-label={current.label} className="sm:p-6">
+        <h2 className="mb-4 font-semibold text-ink">{current.label}</h2>
+        {loading ? <Skeleton className="h-32 rounded-md" /> : render()}
+      </Card>
     </div>
   );
 }

@@ -2,10 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/*
+  Tokens do Comanda+ (valores em R G B para o Tailwind aplicar opacidade: bg-ink/50).
+  accent é a cor da marca (bordas, marcadores, item ativo). Para texto e para o fundo dos botões
+  usa-se accent-strong: o #c45c2a dá só 4,3:1 com branco e 4,0:1 sobre o fundo, abaixo do AA (4,5:1).
+*/
+:root {
+  --bg: 250 246 239; /* #faf6ef */
+  --surface: 255 249 242; /* #fff9f2 */
+  --surface-2: 243 236 226; /* #f3ece2 */
+  --ink: 42 31 20; /* #2a1f14 */
+  --ink-muted: 107 90 74; /* #6b5a4a */
+  --accent: 196 92 42; /* #c45c2a */
+  --accent-strong: 166 74 30; /* #a64a1e: 5,8:1 com branco, 5,4:1 sobre o fundo */
+  --success: 61 92 58; /* #3d5c3a */
+  --warning: 154 95 20; /* #9a5f14 */
+  --danger: 176 58 46; /* #b03a2e */
+
+  color-scheme: light;
 }
 
 html {
@@ -13,8 +27,15 @@ html {
 }
 
 body {
+  @apply bg-bg text-ink font-sans text-base antialiased;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Foco visível só no teclado, igual em todo o app */
+:focus-visible {
+  outline: 2px solid rgb(var(--accent-strong));
+  outline-offset: 2px;
 }
 
 /* Celular: campos com 16px evitam o zoom automático do iPhone ao tocar */
@@ -32,7 +53,7 @@ input.date-input {
   appearance: none;
   min-width: 0;
   max-width: 100%;
-  min-height: 2.5rem;
+  min-height: 44px;
 }
 input.date-input::-webkit-date-and-time-value {
   text-align: left;
@@ -43,9 +64,14 @@ input.date-input::-webkit-calendar-picker-indicator {
   padding: 0;
 }
 
-html,
-body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-    'Droid Sans', 'Helvetica Neue', sans-serif;
+/* Movimento reduzido: sem pulsar, sem transição */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

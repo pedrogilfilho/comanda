@@ -4,19 +4,15 @@ interface PageTitleProps {
   actions?: React.ReactNode;
 }
 
+// Título da tela (h1) com ações à direita; no celular as ações descem e ocupam a largura
 export default function PageTitle({ title, subtitle, actions }: PageTitleProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1
-          className="text-2xl sm:text-4xl font-bold text-[#2a1f14]"
-          style={{ fontFamily: 'Georgia, serif' }}
-        >
-          {title}
-        </h1>
-        {subtitle && <p className="text-sm sm:text-base text-[#6b5a4a] mt-1 sm:mt-2">{subtitle}</p>}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+        {subtitle && <p className="text-sm text-ink-muted mt-1">{subtitle}</p>}
       </div>
-      {actions}
+      {actions && <div className="flex flex-col gap-2 sm:flex-row sm:flex-shrink-0">{actions}</div>}
     </div>
   );
 }

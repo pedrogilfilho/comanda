@@ -1,11 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import Dialog from '@/components/ui/Dialog';
+import { STOCK_NOTE_MAX_LENGTH } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { Product, adjustStock } from '@/services/products';
 import { weight, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format';
+import { cx } from '@/lib/cx';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Dialog, { DialogActions } from '@/components/ui/Dialog';
+import Field, { Input, Select } from '@/components/ui/Field';
+import Icon from '@/components/ui/Icon';
+import PageTitle from '@/components/ui/PageTitle';
+import { SkeletonList } from '@/components/ui/Skeleton';
 
 interface StockManagerProps {
   products: Product[];
@@ -15,23 +25,23 @@ interface StockManagerProps {
 
 type Movement = 'ENTRADA' | 'SAIDA' | 'CONTAGEM';
 
-const MOVEMENTS: { key: Movement; icon: string; label: string; hint: string }[] = [
-  { key: 'ENTRADA', icon: '📦', label: 'Entrada', hint: 'Chegou mercadoria' },
-  { key: 'SAIDA', icon: '🗑️', label: 'Saída', hint: 'Perda, quebra, vencido' },
-  { key: 'CONTAGEM', icon: '📋', label: 'Contagem', hint: 'Corrigir pelo inventário' },
+const MOVEMENTS: { key: Movement; label: string; hint: string }[] = [
+  { key: 'ENTRADA', label: 'Entrada', hint: 'Chegou mercadoria' },
+  { key: 'SAIDA', label: 'Saída', hint: 'Perda, quebra, vencido' },
+  { key: 'CONTAGEM', label: 'Contagem', hint: 'Corrigir pelo inventário' },
 ];
 
 const REASONS: Record<Movement, string[]> = {
   ENTRADA: ['Compra de fornecedor', 'Devolução', 'Outro'],
-  SAIDA: ['Quebra', 'Vencido / estragado', 'Consumo interno', 'Cortesia', 'Outro'],
+  SAIDA: ['Quebra', 'Vencido ou estragado', 'Consumo interno', 'Cortesia', 'Outro'],
   CONTAGEM: ['Inventário', 'Erro de lançamento', 'Outro'],
 };
 
-const emptyForm = { movement: 'ENTRADA' as Movement, quantity: '', reason: REASONS.ENTRADA[0], note: '' };
+const EMPTY_FORM = { movement: 'ENTRADA' as Movement, quantity: '', reason: REASONS.ENTRADA[0], note: '' };
 
 export default function StockManager({ products, loading, onChange }: StockManagerProps) {
   const [target, setTarget] = useState<Product | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
   const low = products.filter((p) => p.lowStock);
@@ -42,7 +52,7 @@ export default function StockManager({ products, loading, onChange }: StockManag
 
   const open = (p: Product) => {
     setTarget(p);
-    setForm(emptyForm);
+    setForm(EMPTY_FORM);
   };
 
   // Novo estoque calculado a partir do movimento escolhido
@@ -56,13 +66,14 @@ export default function StockManager({ products, loading, onChange }: StockManag
     return amount;
   })();
 
-  const handleSave = async () => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!target) return;
     if (preview === null) {
       toast.error(
         target.isMeat
-          ? 'Digite a quantidade em kg (ex: 5 ou 2,5)'
-          : 'Digite a quantidade em unidades (ex: 12)',
+          ? 'Digite a quantidade em kg (ex.: 5 ou 2,5)'
+          : 'Digite a quantidade em unidades (ex.: 12)',
       );
       return;
     }
@@ -71,7 +82,7 @@ export default function StockManager({ products, loading, onChange }: StockManag
       return;
     }
     if (preview === target.stock) {
-      toast.error('O estoque continua igual — nada a ajustar');
+      toast.error('O estoque continua igual, não há o que ajustar');
       return;
     }
     if (form.reason === 'Outro' && !form.note.trim()) {
@@ -93,8 +104,8 @@ export default function StockManager({ products, loading, onChange }: StockManag
       toast.success(`Estoque de ${target.name}: ${show(target, preview)}`);
       setTarget(null);
       onChange();
-    } catch (e) {
-      toast.error(errorMessage(e, 'Erro ao ajustar estoque'));
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erro ao ajustar estoque'));
     } finally {
       setSaving(false);
     }
@@ -108,222 +119,190 @@ export default function StockManager({ products, loading, onChange }: StockManag
   const unit = target?.isMeat ? 'kg' : 'unidades';
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-          Estoque
-        </h1>
-        {low.length > 0 && (
-          <span
-            className="text-xs px-3 py-1.5 rounded-full font-semibold"
-            style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
-          >
-            ⚠ {low.length} {low.length === 1 ? 'item' : 'itens'} com estoque baixo
-          </span>
-        )}
-      </div>
+    <div className="space-y-6">
+      <PageTitle title="Estoque" subtitle="Baixa sozinho a cada pedido; ajustes manuais ficam nos logs" />
 
       {low.length > 0 && (
-        <div
-          className="rounded-2xl p-4 mb-6"
-          style={{ background: 'rgba(217,83,79,0.06)', border: '1px solid rgba(217,83,79,0.25)' }}
-        >
-          <p className="text-sm font-semibold mb-3" style={{ color: '#c0392b' }}>
-            ⚠ Itens abaixo do estoque mínimo
-          </p>
-          <div className="flex flex-wrap gap-2">
+        <Card tone="danger" className="bg-danger/5">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-danger">
+            <Icon icon={AlertTriangle} />
+            {low.length} {low.length === 1 ? 'item abaixo' : 'itens abaixo'} do estoque mínimo
+          </h2>
+          <ul className="flex flex-wrap gap-2">
             {low.map((p) => (
-              <span
-                key={p.id}
-                className="text-xs px-3 py-1.5 rounded-full"
-                style={{ background: 'rgba(217,83,79,0.12)', color: '#b03a2e' }}
-              >
-                {p.name} — {p.isMeat ? weight(p.stock) : `${p.stock} restantes`}
-              </span>
+              <li key={p.id}>
+                <Badge tone="danger">
+                  {p.name}: {p.isMeat ? weight(p.stock) : `${p.stock} un`}
+                </Badge>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </Card>
       )}
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl animate-pulse"
-              style={{ background: '#f5f0eb', height: '60px' }}
-            />
-          ))}
-        </div>
+        <SkeletonList rows={4} />
       ) : (
         <div className="space-y-6">
           {CATEGORY_ORDER.filter((c) => grouped[c]?.length).map((cat) => (
-            <div key={cat}>
-              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#c45c2a' }}>
+            <section key={cat} aria-labelledby={`stock-${cat}`}>
+              <h2 id={`stock-${cat}`} className="mb-2 text-sm font-semibold text-ink-muted">
                 {CATEGORY_LABEL[cat]}
-              </p>
-              <div className="space-y-2">
+              </h2>
+              <ul className="space-y-2">
                 {grouped[cat].map((p) => {
                   const pct = Math.min(100, (p.stock / Math.max(1, p.minStock * 5)) * 100);
                   return (
-                    <div
+                    <Card
+                      as="li"
                       key={p.id}
-                      className="rounded-2xl p-3 flex flex-wrap items-center gap-3"
-                      style={{
-                        background: '#fff9f2',
-                        border: `1px solid ${p.lowStock ? 'rgba(232,160,74,0.6)' : '#d9cfc2'}`,
-                      }}
+                      padding="sm"
+                      tone={p.lowStock ? 'warning' : 'default'}
+                      className="flex flex-col gap-3 sm:flex-row sm:items-center"
                     >
-                      <div className="flex-1 min-w-[150px]">
-                        <p className="font-semibold text-[#2a1f14] text-sm">{p.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="w-24 h-1.5 rounded-full" style={{ background: '#ece3d8' }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-ink">{p.name}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="h-1.5 w-24 rounded-full bg-surface-2" aria-hidden>
                             <div
-                              className="h-1.5 rounded-full"
-                              style={{ width: `${pct}%`, background: p.lowStock ? '#e8a04a' : '#3d5c3a' }}
+                              className={cx('h-1.5 rounded-full', p.lowStock ? 'bg-warning' : 'bg-success')}
+                              style={{ width: `${pct}%` }}
                             />
                           </div>
                           <span
-                            className="text-xs font-medium"
-                            style={{ color: p.lowStock ? '#b8741f' : '#7a6650' }}
+                            className={cx(
+                              'text-sm font-medium tabular-nums',
+                              p.lowStock ? 'text-warning' : 'text-ink-muted',
+                            )}
                           >
                             {show(p, p.stock)}
                           </span>
                         </div>
                       </div>
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => open(p)}
-                        className="w-full sm:w-auto px-4 py-2 sm:py-1.5 rounded-lg text-xs font-semibold"
-                        style={{ background: 'rgba(61,92,58,0.12)', color: '#3d5c3a' }}
+                        aria-label={`Ajustar estoque de ${p.name}`}
                       >
                         Ajustar estoque
-                      </button>
-                    </div>
+                      </Button>
+                    </Card>
                   );
                 })}
-              </div>
-            </div>
+              </ul>
+            </section>
           ))}
-          <p className="text-xs" style={{ color: '#8a7060' }}>
-            Carnes são controladas em kg e os demais itens em unidades. O estoque também baixa automaticamente
-            a cada pedido lançado. Todo ajuste manual fica registrado nos logs com o motivo.
-          </p>
         </div>
       )}
 
       {target && (
-        <Dialog title="Ajustar estoque" onClose={() => setTarget(null)} dismissible={!saving}>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm mt-1" style={{ color: '#7a6650' }}>
-                {target.name} · atual <strong>{show(target, target.stock)}</strong>
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
-                Tipo de movimentação *
-              </label>
-              <div className="grid grid-cols-1 min-[400px]:grid-cols-3 gap-2">
+        <Dialog
+          title="Ajustar estoque"
+          description={`${target.name}, hoje com ${show(target, target.stock)}`}
+          onClose={() => setTarget(null)}
+          dismissible={!saving}
+        >
+          <form onSubmit={handleSave} className="space-y-4">
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-medium text-ink">Tipo de movimentação</legend>
+              <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-3" role="radiogroup">
                 {MOVEMENTS.map((m) => {
                   const active = form.movement === m.key;
                   return (
                     <button
                       key={m.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
                       onClick={() => setForm((f) => ({ ...f, movement: m.key, reason: REASONS[m.key][0] }))}
-                      className="p-2 rounded-lg border text-left"
-                      style={{
-                        background: active ? 'rgba(61,92,58,0.1)' : '#fff',
-                        borderColor: active ? '#3d5c3a' : '#e8ddd2',
-                      }}
+                      className={cx(
+                        'min-h-tap rounded-sm border p-2 text-left transition-colors',
+                        active
+                          ? 'border-accent bg-accent/10'
+                          : 'border-hairline bg-surface hover:bg-surface-2',
+                      )}
                     >
-                      <p className="text-sm font-semibold" style={{ color: active ? '#3d5c3a' : '#2a1f14' }}>
-                        {m.icon} {m.label}
-                      </p>
-                      <p className="text-[11px] leading-tight" style={{ color: '#8a7060' }}>
-                        {m.hint}
-                      </p>
+                      <span
+                        className={cx(
+                          'block text-sm font-semibold',
+                          active ? 'text-accent-strong' : 'text-ink',
+                        )}
+                      >
+                        {m.label}
+                      </span>
+                      <span className="block text-xs text-ink-muted">{m.hint}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </fieldset>
 
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
-                {form.movement === 'CONTAGEM' ? `Quantidade contada (${unit}) *` : `Quantidade (${unit}) *`}
-              </label>
-              <input
+            <Field
+              label={form.movement === 'CONTAGEM' ? `Quantidade contada (${unit})` : `Quantidade (${unit})`}
+              htmlFor="stock-qty"
+              hint={target.isMeat ? 'Ex.: 5 ou 2,5' : 'Ex.: 24'}
+            >
+              <Input
+                id="stock-qty"
+                autoFocus
                 inputMode="decimal"
+                aria-describedby="stock-qty-hint"
                 value={form.quantity}
                 onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
-                placeholder={target.isMeat ? 'Ex: 5 ou 2,5' : 'Ex: 24'}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Motivo *</label>
-              <select
+            <Field label="Motivo" htmlFor="stock-reason">
+              <Select
+                id="stock-reason"
                 value={form.reason}
                 onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg bg-white"
-                style={{ borderColor: '#d9cfc2' }}
               >
                 {REASONS[form.movement].map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
-                Observação{form.reason === 'Outro' ? ' *' : ''}
-              </label>
-              <input
+            <Field
+              label="Observação"
+              htmlFor="stock-note"
+              optional={form.reason !== 'Outro'}
+              hint="Ex.: nota fiscal 1234"
+            >
+              <Input
+                id="stock-note"
                 value={form.note}
-                maxLength={80}
+                maxLength={Math.min(80, STOCK_NOTE_MAX_LENGTH)}
+                aria-describedby="stock-note-hint"
                 onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
-                placeholder="Ex: nota fiscal 1234"
               />
-            </div>
+            </Field>
 
-            <div className="p-3 rounded-lg text-sm flex justify-between" style={{ background: '#f5f0eb' }}>
-              <span style={{ color: '#7a6650' }}>Estoque após o ajuste</span>
+            <div className="flex justify-between gap-3 rounded-md bg-surface-2 p-3 text-sm" role="status">
+              <span className="text-ink-muted">Estoque depois do ajuste</span>
               <span
-                className="font-bold"
-                style={{ color: preview !== null && preview < 0 ? '#d9534f' : '#2a1f14' }}
+                className={cx(
+                  'font-bold tabular-nums',
+                  preview !== null && preview < 0 ? 'text-danger' : 'text-ink',
+                )}
               >
-                {preview === null
-                  ? '—'
-                  : `${show(target, target.stock)} → ${preview < 0 ? 'negativo' : show(target, preview)}`}
+                {preview === null ? 'a calcular' : preview < 0 ? 'negativo' : show(target, preview)}
               </span>
             </div>
 
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={() => setTarget(null)}
-                disabled={saving}
-                className="flex-1 py-2 rounded-lg font-semibold"
-                style={{ background: '#f0ebe4', color: '#6b5a4a' }}
-              >
+            <DialogActions>
+              <Button variant="secondary" onClick={() => setTarget(null)} disabled={saving}>
                 Voltar
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || preview === null}
-                className="flex-1 py-2 rounded-lg font-semibold text-white disabled:opacity-40"
-                style={{ background: '#3d5c3a', opacity: saving ? 0.6 : undefined }}
-              >
-                {saving ? 'Salvando…' : 'Confirmar ajuste'}
-              </button>
-            </div>
-          </div>
+              </Button>
+              <Button type="submit" disabled={preview === null} loading={saving}>
+                Salvar ajuste
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
       )}
     </div>

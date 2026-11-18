@@ -1,14 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_MIN_GRAMS } from '@comanda/shared';
-import Dialog from '@/components/ui/Dialog';
 import { errorMessage } from '@/services/http';
 import { createProduct, removeProduct } from '@/services/products';
 import type { Product, ProductCategory } from '@/types/api';
 import { money, weight, toCents, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format';
-import ConfirmModal from '@/components/ui/ConfirmModal';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Dialog, { DialogActions } from '@/components/ui/Dialog';
+import Field, { Input, Select } from '@/components/ui/Field';
+import PageTitle from '@/components/ui/PageTitle';
+import { SkeletonList } from '@/components/ui/Skeleton';
 
 interface MenuManagerProps {
   products: Product[];
@@ -16,16 +23,17 @@ interface MenuManagerProps {
   onChange: () => void;
 }
 
+const EMPTY = {
+  name: '',
+  category: 'CARNE' as ProductCategory,
+  description: '',
+  price: '',
+  minGrams: String(DEFAULT_MIN_GRAMS),
+  stock: '',
+};
+
 export default function MenuManager({ products, loading, onChange }: MenuManagerProps) {
-  const empty = {
-    name: '',
-    category: 'CARNE' as ProductCategory,
-    description: '',
-    price: '',
-    minGrams: String(DEFAULT_MIN_GRAMS),
-    stock: '',
-  };
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState(EMPTY);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toRemove, setToRemove] = useState<Product | null>(null);
@@ -33,7 +41,8 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
 
   const isMeat = form.category === 'CARNE';
 
-  const handleCreate = async () => {
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
     const cents = toCents(form.price);
     if (!form.name.trim()) {
       toast.error('Informe o nome do item');
@@ -65,11 +74,11 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
         stock,
       });
       toast.success(`${form.name.trim()} adicionado ao cardápio`);
-      setForm(empty);
+      setForm(EMPTY);
       setShowCreate(false);
       onChange();
-    } catch (e) {
-      toast.error(errorMessage(e, 'Erro ao adicionar item'));
+    } catch (err) {
+      toast.error(errorMessage(err, 'Erro ao adicionar item'));
     } finally {
       setSaving(false);
     }
@@ -96,203 +105,155 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
   });
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
-          Cardápio
-        </h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold"
-          style={{ background: '#3d5c3a', color: '#faf6ef' }}
-        >
-          + Adicionar Item
-        </button>
-      </div>
+    <div className="space-y-6">
+      <PageTitle
+        title="Cardápio"
+        subtitle="O que os garçons podem lançar"
+        actions={
+          <Button icon={Plus} onClick={() => setShowCreate(true)}>
+            Adicionar item
+          </Button>
+        }
+      />
 
       {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl animate-pulse"
-              style={{ background: '#f5f0eb', height: '64px' }}
-            />
-          ))}
-        </div>
+        <SkeletonList rows={4} />
       ) : (
         <div className="space-y-6">
           {CATEGORY_ORDER.filter((c) => grouped[c]?.length).map((cat) => (
-            <div key={cat}>
-              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#c45c2a' }}>
+            <section key={cat} aria-labelledby={`menu-${cat}`}>
+              <h2 id={`menu-${cat}`} className="mb-2 text-sm font-semibold text-ink-muted">
                 {CATEGORY_LABEL[cat]}
-              </p>
-              <div className="space-y-2">
+              </h2>
+              <ul className="space-y-2">
                 {grouped[cat].map((p) => (
-                  <div
+                  <Card
+                    as="li"
                     key={p.id}
-                    className="rounded-2xl p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2"
-                    style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}
+                    padding="sm"
+                    className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
                   >
-                    <div className="flex-1 min-w-0 basis-full sm:basis-auto">
-                      <p className="font-semibold text-[#2a1f14] flex flex-wrap items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
                         {p.name}
                         {p.isMeat && (
-                          <span
-                            className="text-[11px] px-2 py-0.5 rounded-full font-medium"
-                            style={{ background: 'rgba(196,92,42,0.12)', color: '#c45c2a' }}
-                          >
-                            por grama · mín. {p.minGrams ?? 300} g
-                          </span>
+                          <Badge tone="accent">Por peso · mínimo {p.minGrams ?? DEFAULT_MIN_GRAMS} g</Badge>
                         )}
                         {p.lowStock && (
-                          <span
-                            className="text-[11px] px-2 py-0.5 rounded-full font-medium"
-                            style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
-                          >
-                            ⚠ Estoque baixo ({p.isMeat ? weight(p.stock) : p.stock})
-                          </span>
+                          <Badge tone="danger">
+                            Estoque baixo: {p.isMeat ? weight(p.stock) : `${p.stock} un`}
+                          </Badge>
                         )}
                       </p>
-                      {p.description && (
-                        <p className="text-xs mt-0.5" style={{ color: '#8a7060' }}>
-                          {p.description}
-                        </p>
-                      )}
+                      {p.description && <p className="mt-0.5 text-sm text-ink-muted">{p.description}</p>}
                     </div>
-                    <span
-                      className="font-bold whitespace-nowrap mr-auto sm:mr-0"
-                      style={{ color: '#c45c2a' }}
-                    >
-                      {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}
-                    </span>
-                    <button
-                      onClick={() => setToRemove(p)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
-                    >
-                      Remover
-                    </button>
-                  </div>
+                    <div className="flex items-center justify-between gap-3 sm:justify-end">
+                      <span className="whitespace-nowrap font-bold text-accent-strong tabular-nums">
+                        {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}
+                      </span>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setToRemove(p)}
+                        aria-label={`Remover ${p.name} do cardápio`}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  </Card>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           ))}
         </div>
       )}
 
       {showCreate && (
         <Dialog title="Adicionar item ao cardápio" onClose={() => setShowCreate(false)} dismissible={!saving}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Categoria *</label>
-              <select
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Field label="Categoria" htmlFor="item-category">
+              <Select
+                id="item-category"
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as ProductCategory }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
               >
-                <option value="CARNE">Carne (vendida por grama)</option>
+                <option value="CARNE">Carne (vendida por peso)</option>
                 <option value="ACOMPANHAMENTO">Acompanhamento</option>
                 <option value="CALDO">Caldo</option>
                 <option value="BEBIDA">Bebida</option>
                 <option value="OUTROS">Outros</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Nome *</label>
-              <input
+              </Select>
+            </Field>
+            <Field label="Nome" htmlFor="item-name">
+              <Input
+                id="item-name"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
-                placeholder={isMeat ? 'Ex: Linguiça' : 'Ex: Mandioca Frita'}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Descrição</label>
-              <input
+            </Field>
+            <Field label="Descrição" htmlFor="item-description" optional>
+              <Input
+                id="item-description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
-                placeholder="Ex: Crocante por fora, macia por dentro."
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
-                  {isMeat ? 'Preço por kg (R$) *' : 'Preço (R$) *'}
-                </label>
-                <input
+              <Field label={isMeat ? 'Preço por kg (R$)' : 'Preço (R$)'} htmlFor="item-price">
+                <Input
+                  id="item-price"
                   inputMode="decimal"
                   value={form.price}
                   onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  style={{ borderColor: '#d9cfc2' }}
                   placeholder={isMeat ? '178,00' : '22,00'}
                 />
-              </div>
-              {isMeat ? (
-                <div>
-                  <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Mínimo (g) *</label>
-                  <input
+              </Field>
+              {isMeat && (
+                <Field label="Mínimo (g)" htmlFor="item-min">
+                  <Input
+                    id="item-min"
                     inputMode="numeric"
                     value={form.minGrams}
                     onChange={(e) => setForm((f) => ({ ...f, minGrams: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    style={{ borderColor: '#d9cfc2' }}
                   />
-                </div>
-              ) : (
-                <div />
+                </Field>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
-                {isMeat ? 'Estoque inicial (kg)' : 'Estoque inicial (unidades)'}
-              </label>
-              <input
+            <Field
+              label={isMeat ? 'Estoque inicial (kg)' : 'Estoque inicial (unidades)'}
+              htmlFor="item-stock"
+              optional
+            >
+              <Input
+                id="item-stock"
                 inputMode="decimal"
                 value={form.stock}
                 onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                style={{ borderColor: '#d9cfc2' }}
                 placeholder="0"
               />
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setShowCreate(false)}
-                disabled={saving}
-                className="flex-1 py-2 rounded-lg font-semibold"
-                style={{ background: '#f0ebe4', color: '#6b5a4a' }}
-              >
+            </Field>
+            <DialogActions>
+              <Button variant="secondary" onClick={() => setShowCreate(false)} disabled={saving}>
                 Voltar
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={saving}
-                className="flex-1 py-2 rounded-lg font-semibold text-white"
-                style={{ background: '#3d5c3a', opacity: saving ? 0.6 : 1 }}
-              >
-                {saving ? 'Salvando…' : 'Adicionar'}
-              </button>
-            </div>
-          </div>
+              </Button>
+              <Button type="submit" loading={saving}>
+                Adicionar item
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
       )}
 
       {toRemove && (
-        <ConfirmModal
-          title="Remover Item"
+        <ConfirmDialog
+          title="Remover item"
           message={
             <>
               Remover <strong>{toRemove.name}</strong> do cardápio? Ele deixa de aparecer para os garçons.
               Pedidos antigos continuam no histórico.
             </>
           }
-          confirmLabel="Remover"
+          confirmLabel="Remover item"
           tone="danger"
           loading={removing}
           onConfirm={confirmRemove}

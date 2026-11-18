@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Plus, UtensilsCrossed } from 'lucide-react';
 import { toast } from 'sonner';
 import { errorMessage } from '@/services/http';
 import { listTables } from '@/services/tables';
@@ -9,9 +10,13 @@ import { money } from '@/lib/format';
 import { POLL_MS } from '@/constants';
 import { useSession } from '@/hooks/useSession';
 import { usePolling } from '@/hooks/usePolling';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import EmptyState from '@/components/ui/EmptyState';
 import PageTitle from '@/components/ui/PageTitle';
 import StatTile from '@/components/ui/StatTile';
-import Skeleton from '@/components/ui/Skeleton';
+import { SkeletonList } from '@/components/ui/Skeleton';
 import OpenTableDialog from './OpenTableDialog';
 import OrdersDialog from './OrdersDialog';
 import AddItemsDialog from './AddItemsDialog';
@@ -43,113 +48,74 @@ export default function TablesView() {
   usePolling(load, POLL_MS, { enabled: modal === null });
 
   const occupied = tables.filter((t) => t.status === 'OCCUPIED');
+  const openButton = (
+    <Button icon={Plus} onClick={() => setModal({ kind: 'open' })}>
+      Abrir mesa
+    </Button>
+  );
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-6">
       <PageTitle
         title="Mesas"
         subtitle={isManager ? 'Mesas em funcionamento e fechamento de contas' : 'Mesas em funcionamento'}
+        actions={openButton}
       />
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
-        <StatTile label="Mesas ocupadas" value={occupied.length} color="#c45c2a" />
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
+        <StatTile label="Mesas ocupadas" value={occupied.length} tone="accent" />
         {isManager ? (
           <StatTile
-            label="Em aberto (com taxa)"
+            label="Em aberto, com taxa"
             value={money(occupied.reduce((s, t) => s + t.total, 0))}
-            color="#3d5c3a"
+            tone="success"
           />
         ) : (
           <StatTile
             label="Pedidos não entregues"
             value={occupied.reduce((s, t) => s + t.undelivered, 0)}
-            color="#3d5c3a"
+            tone="success"
           />
         )}
-        <StatTile
-          label="Mesas livres"
-          value={tables.filter((t) => t.status === 'FREE').length}
-          color="#6b5a4a"
-        />
+        <StatTile label="Mesas livres" value={tables.filter((t) => t.status === 'FREE').length} />
       </div>
-      <button
-        onClick={() => setModal({ kind: 'open' })}
-        className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold"
-        style={{ background: '#3d5c3a', color: '#faf6ef' }}
-      >
-        Abrir mesa
-      </button>
 
       {loading ? (
-        <Skeleton />
+        <SkeletonList rows={2} className="h-36" />
       ) : occupied.length === 0 ? (
-        <div
-          className="rounded-2xl py-12 text-center"
-          style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}
-        >
-          <p className="text-[#6b5a4a]">Nenhuma mesa aberta no momento</p>
-        </div>
+        <EmptyState
+          icon={UtensilsCrossed}
+          title="Nenhuma mesa aberta"
+          description="Abra uma mesa para lançar o primeiro pedido."
+        />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <ul className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4">
           {occupied.map((t) => (
-            <article
-              key={t.id}
-              className="rounded-2xl p-3 sm:p-4 flex flex-col gap-2 min-w-0"
-              style={{ background: 'rgba(196,92,42,0.05)', border: '1.5px solid #c45c2a' }}
-            >
-              <div className="flex flex-wrap justify-between items-start gap-1">
+            <Card as="li" key={t.id} tone="accent" padding="sm" className="flex min-w-0 flex-col gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-1">
                 <div className="min-w-0">
-                  <p className="text-xs" style={{ color: '#6b5a4a' }}>
-                    Mesa
-                  </p>
-                  <h2
-                    className="text-xl sm:text-2xl font-bold text-[#2a1f14] leading-none break-words"
-                    style={{ fontFamily: 'Georgia, serif' }}
-                  >
+                  <p className="text-xs text-ink-muted">Mesa</p>
+                  <h2 className="font-display text-xl font-bold leading-none text-ink break-words">
                     {t.identifier}
                   </h2>
                 </div>
-                {t.inKitchen > 0 && (
-                  <span
-                    className="text-xs px-2 py-1 rounded-full font-semibold"
-                    style={{ background: 'rgba(232,160,74,0.2)', color: '#7a4a0e' }}
-                  >
-                    {t.inKitchen} na cozinha
-                  </span>
-                )}
+                {t.inKitchen > 0 && <Badge tone="warning">{t.inKitchen} na cozinha</Badge>}
               </div>
-              {t.clientName && (
-                <p
-                  className="text-xs px-2 py-1 rounded-lg truncate"
-                  style={{ background: 'rgba(232,160,74,0.15)', color: '#7a4a0e' }}
-                >
-                  {t.clientName}
-                </p>
-              )}
-              <p className="text-sm font-semibold" style={{ color: '#c45c2a' }}>
-                {money(t.total)}{' '}
-                <span className="text-xs font-normal" style={{ color: '#6b5a4a' }}>
-                  com taxa
-                </span>
+              {t.clientName && <p className="truncate text-sm text-ink-muted">{t.clientName}</p>}
+              <p className="text-base font-semibold text-accent-strong tabular-nums">
+                {money(t.total)} <span className="text-xs font-normal text-ink-muted">com taxa</span>
               </p>
-              <div className="flex gap-1 mt-1">
-                <button
-                  onClick={() => setModal({ kind: 'orders', table: t })}
-                  className="flex-1 py-2 sm:py-1.5 rounded-xl text-xs font-semibold"
-                  style={{ background: '#c45c2a', color: '#faf6ef' }}
-                >
-                  Pedidos
-                </button>
-                <button
-                  onClick={() => setModal({ kind: 'account', table: t })}
-                  className="flex-1 py-2 sm:py-1.5 rounded-xl text-xs font-semibold"
-                  style={{ background: '#3d5c3a', color: '#faf6ef' }}
-                >
-                  Conta
-                </button>
+              <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
+                <Button size="sm" variant="secondary" onClick={() => setModal({ kind: 'orders', table: t })}>
+                  Ver pedidos
+                </Button>
+                <Button size="sm" onClick={() => setModal({ kind: 'account', table: t })}>
+                  Ver conta
+                </Button>
               </div>
-            </article>
+            </Card>
           ))}
-        </div>
+        </ul>
       )}
 
       {modal?.kind === 'open' && <OpenTableDialog onClose={() => setModal(null)} onOpened={load} />}

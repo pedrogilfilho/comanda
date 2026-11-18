@@ -1,16 +1,28 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Plus, ReceiptText } from 'lucide-react';
 import { toast } from 'sonner';
-import { ORDER_STATUS_LABEL, canTransition } from '@comanda/shared';
+import { ORDER_STATUS_LABEL, canTransition, type OrderStatus } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { getTableAccount, updateOrderStatus } from '@/services/orders';
 import type { OrderView, Table, TableAccount } from '@/types/api';
 import { money, weight, time } from '@/lib/format';
 import { useSession } from '@/hooks/useSession';
+import Badge, { type BadgeTone } from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Dialog from '@/components/ui/Dialog';
-import ConfirmModal from '@/components/ui/ConfirmModal';
-import Skeleton from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
+import Field, { Input } from '@/components/ui/Field';
+import { SkeletonList } from '@/components/ui/Skeleton';
+
+const STATUS_TONE: Partial<Record<OrderStatus, BadgeTone>> = {
+  PENDING: 'neutral',
+  PREPARING: 'warning',
+  READY: 'success',
+  DELIVERED: 'success',
+};
 
 interface OrdersDialogProps {
   table: Table;
@@ -59,61 +71,63 @@ export default function OrdersDialog({ table, onClose, onAddItems, onChanged }: 
   return (
     <>
       <Dialog
-        title={`Pedidos · Mesa ${table.identifier}`}
+        title={`Pedidos da mesa ${table.identifier}`}
         onClose={onClose}
         footer={
-          <button
-            onClick={onAddItems}
-            className="w-full py-3 rounded-lg font-semibold text-white"
-            style={{ background: '#c45c2a' }}
-          >
+          <Button block icon={Plus} onClick={onAddItems}>
             Adicionar itens
-          </button>
+          </Button>
         }
       >
         {!account ? (
-          <Skeleton className="h-24 rounded-xl" />
+          <SkeletonList rows={2} className="h-24" />
         ) : account.orders.length === 0 ? (
-          <p className="text-center py-6 text-[#6b5a4a]">Nenhum pedido lançado ainda</p>
+          <EmptyState
+            icon={ReceiptText}
+            title="Nenhum pedido lançado"
+            description="Os pedidos desta mesa aparecem aqui."
+          />
         ) : (
           <ul className="space-y-3">
             {account.orders.map((o) => (
-              <li key={o.id} className="p-3 rounded-lg border" style={{ borderColor: '#e8ddd2' }}>
-                <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
-                  <span
-                    className="text-xs px-2 py-1 rounded-full font-semibold"
-                    style={{ background: 'rgba(61,92,58,0.15)', color: '#3d5c3a' }}
-                  >
-                    {ORDER_STATUS_LABEL[o.status] ?? o.status} · {time(o.createdAt)}
+              <li key={o.id} className="rounded-md border border-hairline p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex items-center gap-2">
+                    <Badge tone={STATUS_TONE[o.status] ?? 'neutral'}>
+                      {ORDER_STATUS_LABEL[o.status] ?? o.status}
+                    </Badge>
+                    <span className="text-xs text-ink-muted tabular-nums">{time(o.createdAt)}</span>
                   </span>
-                  <span className="text-sm font-semibold" style={{ color: '#c45c2a' }}>
+                  <span className="text-sm font-semibold text-accent-strong tabular-nums">
                     {money(o.subtotal)}
                   </span>
                 </div>
-                {o.items.map((it) => (
-                  <p key={it.id} className="text-sm text-[#2a1f14]">
-                    • {it.productName} {it.isMeat ? weight(it.quantity) : `x${it.quantity}`}:{' '}
-                    {money(it.subtotal)}
-                    {it.notes && (
-                      <span className="text-xs italic" style={{ color: '#9a5f14' }}>
-                        {' '}
-                        · {it.notes}
+                <ul className="space-y-0.5">
+                  {o.items.map((it) => (
+                    <li key={it.id} className="flex justify-between gap-3 text-sm text-ink">
+                      <span className="min-w-0">
+                        {it.productName}{' '}
+                        <span className="text-ink-muted">
+                          {it.isMeat ? weight(it.quantity) : `x${it.quantity}`}
+                        </span>
+                        {it.notes && <span className="block text-xs text-warning">Obs.: {it.notes}</span>}
                       </span>
-                    )}
-                  </p>
-                ))}
+                      <span className="whitespace-nowrap tabular-nums">{money(it.subtotal)}</span>
+                    </li>
+                  ))}
+                </ul>
                 {canCancel && canTransition(o.status, 'CANCELLED') && (
                   <div className="flex justify-end pt-2">
-                    <button
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => {
                         setReason('');
                         setToCancel(o);
                       }}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                      style={{ color: '#b03a2e', background: 'rgba(176,58,46,0.08)' }}
                     >
                       Cancelar pedido
-                    </button>
+                    </Button>
                   </div>
                 )}
               </li>
@@ -123,11 +137,11 @@ export default function OrdersDialog({ table, onClose, onAddItems, onChanged }: 
       </Dialog>
 
       {toCancel && (
-        <ConfirmModal
+        <ConfirmDialog
           title="Cancelar pedido"
           message={
             <>
-              O pedido de {time(toCancel.createdAt)} ({money(toCancel.subtotal)}) sai da conta e os itens
+              O pedido das {time(toCancel.createdAt)} ({money(toCancel.subtotal)}) sai da conta e os itens
               voltam para o estoque.
             </>
           }
@@ -137,19 +151,15 @@ export default function OrdersDialog({ table, onClose, onAddItems, onChanged }: 
           onConfirm={confirmCancel}
           onCancel={() => setToCancel(null)}
         >
-          <label htmlFor="cancel-reason" className="block text-xs font-medium mb-1">
-            Motivo (opcional)
-          </label>
-          <input
-            id="cancel-reason"
-            value={reason}
-            maxLength={120}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg text-[#2a1f14]"
-            style={{ borderColor: '#d9cfc2' }}
-            placeholder="Ex: cliente desistiu"
-          />
-        </ConfirmModal>
+          <Field label="Motivo" htmlFor="cancel-reason" optional hint="Ex.: cliente desistiu">
+            <Input
+              id="cancel-reason"
+              value={reason}
+              maxLength={120}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+        </ConfirmDialog>
       )}
     </>
   );
