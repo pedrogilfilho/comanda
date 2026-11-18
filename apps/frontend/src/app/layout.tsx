@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'sonner'
-import './globals.css'
+import '@/styles/globals.css'
 
 export const metadata: Metadata = {
   title: 'Comanda+',

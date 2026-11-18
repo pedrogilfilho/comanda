@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { Table as TableRow } from '@prisma/client';
 import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
 import { TableRepository } from 'src/domain/repositories/table.repository.interface';
-import { Table } from 'src/domain/entities/table/table.entity';
+import { Table, type TableStatus } from 'src/domain/entities/table/table.entity';
 
 @Injectable()
 export class PrismaTableRepository extends TableRepository {
@@ -9,12 +10,12 @@ export class PrismaTableRepository extends TableRepository {
     super();
   }
 
-  private toEntity(raw: any): Table {
+  private toEntity(raw: TableRow): Table {
     return Table.with({
       id: raw.id,
       identifier: raw.identifier,
       capacity: raw.capacity,
-      status: raw.status,
+      status: raw.status as TableStatus, // coluna String no banco
       clientName: raw.clientName,
       openedAt: raw.openedAt,
       createdAt: raw.createdAt,
@@ -24,7 +25,7 @@ export class PrismaTableRepository extends TableRepository {
 
   async findAll(): Promise<Table[]> {
     const rows = await this.prisma.db.table.findMany({ orderBy: { createdAt: 'asc' } });
-    return rows.map((r: any) => this.toEntity(r));
+    return rows.map((r) => this.toEntity(r));
   }
 
   async findById(id: string): Promise<Table | null> {

@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import type { User as UserRow } from '@prisma/client';
+import type { UserRole } from '@comanda/shared';
 import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { User } from 'src/domain/entities/user/user.entity';
@@ -9,14 +11,14 @@ export class PrismaUserRepository extends UserRepository {
     super();
   }
 
-  private toEntity(raw: any): User {
+  private toEntity(raw: UserRow): User {
     return User.with({
       id: raw.id,
       username: raw.username,
       name: raw.name,
       email: raw.email,
       password: raw.password,
-      role: raw.role as any,
+      role: raw.role as UserRole,
       needsPasswordChange: raw.needsPasswordChange,
       active: raw.active,
       deactivatedAt: raw.deactivatedAt,
@@ -74,12 +76,12 @@ export class PrismaUserRepository extends UserRepository {
   async findByIds(ids: string[]): Promise<User[]> {
     if (ids.length === 0) return [];
     const rows = await this.prisma.db.user.findMany({ where: { id: { in: ids } } });
-    return rows.map((r: any) => this.toEntity(r));
+    return rows.map((r) => this.toEntity(r));
   }
 
   async findAll(): Promise<User[]> {
     const rows = await this.prisma.db.user.findMany({ orderBy: { createdAt: 'asc' } });
-    return rows.map((r: any) => this.toEntity(r));
+    return rows.map((r) => this.toEntity(r));
   }
 
   async update(user: User): Promise<void> {

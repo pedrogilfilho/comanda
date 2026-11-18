@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { AccountPayment, ClosedAccount as ClosedAccountRow } from '@prisma/client';
 import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
 import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.repository.interface';
 import { ClosedAccount, PaymentMethod } from 'src/domain/entities/closed-account/closed-account.entity';
@@ -9,7 +10,7 @@ export class PrismaClosedAccountRepository extends ClosedAccountRepository {
     super();
   }
 
-  private toEntity(raw: any): ClosedAccount {
+  private toEntity(raw: ClosedAccountRow & { payments?: AccountPayment[] }): ClosedAccount {
     return ClosedAccount.with({
       id: raw.id,
       tableId: raw.tableId,
@@ -21,7 +22,7 @@ export class PrismaClosedAccountRepository extends ClosedAccountRepository {
       subtotal: raw.subtotal,
       serviceFee: raw.serviceFee,
       total: raw.total,
-      payments: (raw.payments ?? []).map((p: any) => ({
+      payments: (raw.payments ?? []).map((p) => ({
         method: p.method as PaymentMethod,
         amount: p.amount,
         installments: p.installments,
@@ -53,6 +54,6 @@ export class PrismaClosedAccountRepository extends ClosedAccountRepository {
       include: { payments: { orderBy: { createdAt: 'asc' } } },
       orderBy: { closedAt: 'desc' },
     });
-    return rows.map((r: any) => this.toEntity(r));
+    return rows.map((r) => this.toEntity(r));
   }
 }

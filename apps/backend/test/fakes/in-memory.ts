@@ -1,4 +1,5 @@
 // Repositórios em memória para testar usecases sem banco. Cada um guarda um array de entidades.
+import { ACTIVE_ORDER_STATUSES, KITCHEN_ORDER_STATUSES } from '@comanda/shared';
 import { UnitOfWork } from 'src/domain/ports/unit-of-work';
 import { OrderRepository } from 'src/domain/repositories/order.repository.interface';
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
@@ -14,7 +15,6 @@ import { User } from 'src/domain/entities/user/user.entity';
 import { AuditLog } from 'src/domain/entities/audit-log/audit-log.entity';
 import { ClosedAccount } from 'src/domain/entities/closed-account/closed-account.entity';
 import { StockMovement } from 'src/domain/entities/stock-movement/stock-movement.entity';
-import { ACTIVE_ORDER_STATUSES, KITCHEN_ORDER_STATUSES } from '@comanda/shared';
 
 interface Snapshotable {
   snapshot(): () => void;

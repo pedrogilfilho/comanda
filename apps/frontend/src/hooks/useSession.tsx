@@ -2,8 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getMe, type LoggedUser } from '@/lib/api/auth'
-import { tokenStore } from '@/lib/api/http'
+import { getMe, type LoggedUser } from '@/services/auth'
+import { tokenStore } from '@/services/http'
 import { setCurrentUserName } from '@/lib/pdf/current-user'
 
 interface SessionValue {

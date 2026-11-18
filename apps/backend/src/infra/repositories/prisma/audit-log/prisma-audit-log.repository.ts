@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { AuditLog as AuditLogRow } from '@prisma/client';
 import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
 import { AuditLogRepository } from 'src/domain/repositories/audit-log.repository.interface';
-import { AuditLog } from 'src/domain/entities/audit-log/audit-log.entity';
+import { AuditLog, type AuditAction } from 'src/domain/entities/audit-log/audit-log.entity';
 
 @Injectable()
 export class PrismaAuditLogRepository extends AuditLogRepository {
@@ -9,10 +10,10 @@ export class PrismaAuditLogRepository extends AuditLogRepository {
     super();
   }
 
-  private toEntity(raw: any): AuditLog {
+  private toEntity(raw: AuditLogRow): AuditLog {
     return AuditLog.with({
       id: raw.id,
-      action: raw.action,
+      action: raw.action as AuditAction, // coluna String no banco
       actor: raw.actor,
       details: raw.details,
       createdAt: raw.createdAt,
@@ -36,6 +37,6 @@ export class PrismaAuditLogRepository extends AuditLogRepository {
       where: { createdAt: { gte: from, lte: to }, ...(action ? { action } : {}) },
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map((r: any) => this.toEntity(r));
+    return rows.map((r) => this.toEntity(r));
   }
 }

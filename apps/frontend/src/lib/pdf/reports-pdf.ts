@@ -1,6 +1,6 @@
 // Geração dos PDFs de relatório no navegador (jsPDF carregado só no clique: usa window)
-import type { Reports, ClosedAccountsResult } from '@/lib/api/reports'
-import { money, weight, CATEGORY_LABEL, PAYMENT_LABEL } from '@/lib/utils/format'
+import type { Reports, ClosedAccountsResult } from '@/services/reports'
+import { money, weight, CATEGORY_LABEL, PAYMENT_LABEL } from '@/lib/format'
 
 const BRAND: [number, number, number] = [196, 92, 42] // #c45c2a
 const DARK: [number, number, number] = [42, 31, 20] // #2a1f14
@@ -8,7 +8,7 @@ const MUTED: [number, number, number] = [122, 102, 80] // #7a6650
 const STRIPE: [number, number, number] = [250, 246, 239] // #faf6ef
 
 // A fonte padrão do PDF não tem emoji: remove para não sair lixo no arquivo
-const plain = (s: string) => s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '').replace(/\s+/g, ' ').trim()
+const plain = (s: string) => s.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '').replace(/‍|️/g, '').replace(/\s+/g, ' ').trim()
 
 const br = (iso: string) => iso.split('-').reverse().join('/')
 const periodText = (from: string, to: string) => (from === to ? br(from) : `${br(from)} a ${br(to)}`)
@@ -65,7 +65,7 @@ function footer(doc: Doc) {
   }
 }
 
-const lastY = (doc: Doc) => ((doc as any).lastAutoTable?.finalY ?? 50) as number
+const lastY = (doc: Doc) => ((doc as unknown as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? 50)
 
 // rows: linhas da tabela que vem embaixo, para não deixar a tabela partida (título + 1 linha sozinhos)
 function section(doc: Doc, y: number, title: string, rows = 1): number {

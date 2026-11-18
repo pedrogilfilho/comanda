@@ -1,0 +1,112 @@
+'use client'
+
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
+import { errorMessage } from '@/services/http'
+import { listLogs, AuditLog } from '@/services/reports'
+import { time, dateTime, todayISO } from '@/lib/format'
+import DateRangeFilter from '@/components/ui/DateRangeFilter'
+
+const ACTION: Record<string, { label: string; dot: string; bg: string; fg: string }> = {
+  CONTA_FECHADA: { label: 'Conta fechada', dot: '#3d5c3a', bg: 'rgba(61,92,58,0.15)', fg: '#3d5c3a' },
+  STATUS_ALTERADO: { label: 'Status alterado', dot: '#4a7bd0', bg: 'rgba(74,123,208,0.15)', fg: '#3a64ad' },
+  PEDIDO_LANCADO: { label: 'Pedido lançado', dot: '#c45c2a', bg: 'rgba(196,92,42,0.15)', fg: '#c45c2a' },
+  MESA_ABERTA: { label: 'Mesa aberta', dot: '#e8a04a', bg: 'rgba(232,160,74,0.18)', fg: '#b8741f' },
+  SENHA_RESETADA: { label: 'Senha resetada', dot: '#e8a04a', bg: 'rgba(232,160,74,0.18)', fg: '#b8741f' },
+  DOIS_FATORES_ATIVADO: { label: '2 etapas ativada', dot: '#3d5c3a', bg: 'rgba(61,92,58,0.15)', fg: '#3d5c3a' },
+  DOIS_FATORES_DESATIVADO: { label: '2 etapas desativada', dot: '#7a6650', bg: 'rgba(122,102,80,0.15)', fg: '#7a6650' },
+  DOIS_FATORES_RESETADO: { label: '2 etapas resetada', dot: '#e8a04a', bg: 'rgba(232,160,74,0.18)', fg: '#b8741f' },
+  USUARIO_CRIADO: { label: 'Usuário criado', dot: '#6b4fb8', bg: 'rgba(107,79,184,0.15)', fg: '#6b4fb8' },
+  USUARIO_EXCLUIDO: { label: 'Usuário excluído', dot: '#d9534f', bg: 'rgba(217,83,79,0.15)', fg: '#d9534f' },
+  USUARIO_DESATIVADO: { label: 'Usuário desativado', dot: '#7a6650', bg: 'rgba(122,102,80,0.15)', fg: '#7a6650' },
+  USUARIO_ATIVADO: { label: 'Usuário reativado', dot: '#3d5c3a', bg: 'rgba(61,92,58,0.15)', fg: '#3d5c3a' },
+  ITEM_CRIADO: { label: 'Item adicionado', dot: '#6b4fb8', bg: 'rgba(107,79,184,0.15)', fg: '#6b4fb8' },
+  ITEM_REMOVIDO: { label: 'Item removido', dot: '#d9534f', bg: 'rgba(217,83,79,0.15)', fg: '#d9534f' },
+  ESTOQUE_AJUSTADO: { label: 'Estoque ajustado', dot: '#7a6650', bg: 'rgba(122,102,80,0.15)', fg: '#7a6650' },
+}
+
+export default function LogsView() {
+  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [range, setRange] = useState({ from: todayISO(), to: todayISO() })
+  const [action, setAction] = useState('')
+  const [search, setSearch] = useState('')
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      setLogs(await listLogs(range.from, range.to, action || undefined))
+    } catch (e) {
+      toast.error(errorMessage(e, 'Erro ao carregar logs'))
+    } finally {
+      setLoading(false)
+    }
+  }, [range, action])
+
+  useEffect(() => { load() }, [load])
+
+  const multiDay = range.from !== range.to
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return logs
+    return logs.filter((l) => l.actor.toLowerCase().includes(q) || l.details.toLowerCase().includes(q))
+  }, [logs, search])
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>Logs do Sistema</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-3 py-1.5 rounded-full border" style={{ borderColor: '#d9cfc2', color: '#7a6650' }}>{visible.length} {visible.length === 1 ? 'registro' : 'registros'}</span>
+          <button onClick={load} className="text-xs px-3 py-1.5 rounded-full font-semibold" style={{ background: '#f0f0f0', color: '#7a6650' }}>↻ Atualizar</button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4 mb-4 flex flex-wrap items-end gap-4" style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}>
+        <div className="w-full sm:w-auto sm:min-w-[200px]">
+          <label className="block text-xs font-medium mb-1" style={{ color: '#7a6650' }}>Tipo</label>
+          <select value={action} onChange={(e) => setAction(e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: '#d9cfc2' }}>
+            <option value="">Todos os tipos</option>
+            {Object.entries(ACTION)
+              .sort((a, b) => a[1].label.localeCompare(b[1].label, 'pt-BR'))
+              .map(([key, a]) => <option key={key} value={key}>{a.label}</option>)}
+          </select>
+        </div>
+        <DateRangeFilter from={range.from} to={range.to} onChange={setRange} />
+      </div>
+
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="🔍 Filtrar por usuário ou detalhe (ex: mesa 5, Picanha)..."
+        className="w-full px-4 py-2.5 rounded-xl border mb-4 text-sm"
+        style={{ borderColor: '#d9cfc2', background: '#fff' }}
+      />
+
+      {loading ? (
+        <div className="space-y-2">{[1, 2, 3, 4].map((i) => <div key={i} className="rounded-xl animate-pulse" style={{ background: '#f5f0eb', height: '56px' }} />)}</div>
+      ) : visible.length === 0 ? (
+        <p className="text-center py-12" style={{ color: '#8a7060' }}>Nenhuma atividade encontrada com esses filtros.</p>
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}>
+          {visible.map((l, i) => {
+            const a = ACTION[l.action] ?? { label: l.action, dot: '#7a6650', bg: 'rgba(0,0,0,0.06)', fg: '#7a6650' }
+            return (
+              <div key={l.id} className="px-4 py-3 flex items-start gap-3" style={{ borderTop: i === 0 ? 'none' : '1px solid #ece3d8' }}>
+                <span className="w-2 h-2 rounded-full mt-2 flex-shrink-0" style={{ background: a.dot }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: a.bg, color: a.fg }}>{a.label}</span>
+                    <span className="text-xs font-semibold text-[#2a1f14]">{l.actor}</span>
+                    <span className="text-xs" style={{ color: '#8a7060' }}>{multiDay ? dateTime(l.createdAt) : time(l.createdAt)}</span>
+                  </div>
+                  <p className="text-sm mt-0.5" style={{ color: '#5a4a3a' }}>{l.details}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

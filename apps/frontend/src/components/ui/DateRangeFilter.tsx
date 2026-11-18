@@ -1,6 +1,6 @@
 'use client'
 
-import { todayISO, daysAgoISO } from '@/lib/utils/format'
+import { todayISO, daysAgoISO } from '@/lib/format'
 
 interface DateRangeFilterProps {
   from: string

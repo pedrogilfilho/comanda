@@ -1,7 +1,7 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 
 const ISSUER = 'Comanda+ Quintal do Roger';
 const RECOVERY_CODES = 8;
