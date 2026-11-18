@@ -2,6 +2,13 @@ import type { Table } from '@/types/api';
 
 export type TableSlot = { number: string; table: Table | null };
 
+// Há quanto tempo a mesa está aberta: "há 5 min", "há 1h05"
+export function openFor(iso: string, now: number): string {
+  const min = Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
+  if (min < 60) return `há ${min} min`;
+  return `há ${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`;
+}
+
 const isNumber = (s: string) => /^\d+$/.test(s);
 
 // Mapa do salão: mesas 1..total (com a ocupada no lugar) e, depois, as ocupadas que

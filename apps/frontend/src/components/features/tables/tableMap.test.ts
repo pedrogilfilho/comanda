@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { Table } from '@/types/api';
-import { buildTableMap } from './tableMap';
+import { buildTableMap, openFor } from './tableMap';
+
+describe('openFor', () => {
+  const t0 = new Date('2026-11-18T18:00:00Z');
+  const at = (min: number) => t0.getTime() + min * 60_000;
+  it('minutos até 59, depois horas', () => {
+    expect(openFor(t0.toISOString(), at(5))).toBe('há 5 min');
+    expect(openFor(t0.toISOString(), at(65))).toBe('há 1h05');
+    expect(openFor(t0.toISOString(), at(-2))).toBe('há 0 min');
+  });
+});
 
 const table = (identifier: string, status: Table['status'], clientName: string | null = null): Table => ({
   id: `id-${identifier}`,
