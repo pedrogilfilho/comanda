@@ -13,10 +13,11 @@ import { CreateOrderUsecase } from 'src/usecases/order/create/create-order.useca
 import { ListOrdersByTableUsecase } from 'src/usecases/order/list-by-table/list-orders-by-table.usecase';
 import { ListKitchenOrdersUsecase } from 'src/usecases/order/list-kitchen/list-kitchen-orders.usecase';
 import { UpdateOrderStatusUsecase } from 'src/usecases/order/update-status/update-order-status.usecase';
+import { ChangeOrderItemUsecase } from 'src/usecases/order/change-item/change-order-item.usecase';
 import { Roles } from 'src/infra/web/auth/decorators/roles.decorator';
 import { CurrentUser, type RequestUser } from 'src/infra/web/auth/request-user';
 import { AppError } from 'src/shared/errors/app-error';
-import { CreateOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
+import { ChangeOrderItemDto, CreateOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -25,6 +26,7 @@ export class OrderController {
     private readonly listOrdersByTableUsecase: ListOrdersByTableUsecase,
     private readonly listKitchenOrdersUsecase: ListKitchenOrdersUsecase,
     private readonly updateOrderStatusUsecase: UpdateOrderStatusUsecase,
+    private readonly changeOrderItemUsecase: ChangeOrderItemUsecase,
   ) {}
 
   @Roles('GARCOM', 'GERENTE', 'ADMIN')
@@ -61,5 +63,21 @@ export class OrderController {
       throw AppError.forbidden('Só gerente ou administrador pode cancelar um pedido');
     }
     return this.updateOrderStatusUsecase.execute(id, body.status, user.username, body.reason);
+  }
+
+  // Tirar ou diminuir um item; o caso de uso decide o que o garçom pode
+  @Roles('GARCOM', 'GERENTE', 'ADMIN')
+  @Patch(':id/items/:itemId')
+  @HttpCode(HttpStatus.OK)
+  changeItem(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Body() body: ChangeOrderItemDto,
+  ) {
+    return this.changeOrderItemUsecase.execute(
+      { orderId: id, itemId, quantity: body.quantity, reason: body.reason },
+      { username: user.username, role: user.role },
+    );
   }
 }

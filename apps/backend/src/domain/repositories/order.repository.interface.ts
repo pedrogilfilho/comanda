@@ -9,5 +9,7 @@ export abstract class OrderRepository {
   abstract findByClosedAccountIds(ids: string[]): Promise<Order[]>; // pedidos de contas fechadas (histórico e relatórios)
   abstract countByUserId(userId: string): Promise<number>;
   abstract update(order: Order): Promise<void>;
+  // Grava os itens como estão na entidade (apaga os tirados, atualiza quantidades) e o total/status
+  abstract replaceItems(order: Order): Promise<void>;
   abstract closeByTableId(tableId: string, closedAccountId: string): Promise<void>;
 }

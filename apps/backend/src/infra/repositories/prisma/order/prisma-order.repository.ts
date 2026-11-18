@@ -120,6 +120,20 @@ export class PrismaOrderRepository extends OrderRepository {
     });
   }
 
+  async replaceItems(order: Order): Promise<void> {
+    const items = order.getItems();
+    await this.prisma.db.orderItem.deleteMany({
+      where: { orderId: order.getId(), id: { notIn: items.map((i) => i.getId()) } },
+    });
+    for (const i of items) {
+      await this.prisma.db.orderItem.update({
+        where: { id: i.getId() },
+        data: { quantity: i.getQuantity() },
+      });
+    }
+    await this.update(order);
+  }
+
   async closeByTableId(tableId: string, closedAccountId: string): Promise<void> {
     await this.prisma.db.order.updateMany({
       where: { tableId, status: { in: [...ACTIVE_ORDER_STATUSES] } },

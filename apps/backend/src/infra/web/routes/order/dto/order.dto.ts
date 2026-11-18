@@ -11,7 +11,12 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { ORDER_NOTE_MAX_LENGTH, type OrderStatus } from '@comanda/shared';
+import {
+  ITEM_CHANGE_REASONS,
+  ORDER_NOTE_MAX_LENGTH,
+  type ItemChangeReason,
+  type OrderStatus,
+} from '@comanda/shared';
 
 export class OrderItemDto {
   @IsUUID() productId!: string;
@@ -32,4 +37,13 @@ export class CreateOrderDto {
 export class UpdateOrderStatusDto {
   @IsIn(['PREPARING', 'READY', 'DELIVERED', 'CANCELLED']) status!: Exclude<OrderStatus, 'PENDING' | 'CLOSED'>;
   @IsOptional() @IsString() @MaxLength(120) reason?: string;
+}
+
+export class ChangeOrderItemDto {
+  @IsInt({ message: 'Quantidade inválida' })
+  @Min(0, { message: 'Quantidade inválida' })
+  quantity!: number;
+
+  @IsIn(ITEM_CHANGE_REASONS, { message: 'Escolha o motivo' })
+  reason!: ItemChangeReason;
 }

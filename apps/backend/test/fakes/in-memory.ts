@@ -71,6 +71,9 @@ export class InMemoryOrderRepository extends OrderRepository implements Snapshot
   async countByUserId(userId: string) {
     return this.items.filter((o) => o.getUserId() === userId).length;
   }
+  async replaceItems(order: Order) {
+    await this.update(order);
+  }
   async update(order: Order) {
     this.items = this.items.map((o) => (o.getId() === order.getId() ? order : o));
   }

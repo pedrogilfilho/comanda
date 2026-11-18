@@ -3,6 +3,7 @@ import { CreateOrderUsecase } from 'src/usecases/order/create/create-order.useca
 import { ListOrdersByTableUsecase } from 'src/usecases/order/list-by-table/list-orders-by-table.usecase';
 import { ListKitchenOrdersUsecase } from 'src/usecases/order/list-kitchen/list-kitchen-orders.usecase';
 import { UpdateOrderStatusUsecase } from 'src/usecases/order/update-status/update-order-status.usecase';
+import { ChangeOrderItemUsecase } from 'src/usecases/order/change-item/change-order-item.usecase';
 import { OrderController } from './order.controller';
 
 @Module({
@@ -12,6 +13,7 @@ import { OrderController } from './order.controller';
     ListOrdersByTableUsecase,
     ListKitchenOrdersUsecase,
     UpdateOrderStatusUsecase,
+    ChangeOrderItemUsecase,
   ],
 })
 export class OrderModule {}
