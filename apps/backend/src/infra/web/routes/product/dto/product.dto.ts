@@ -1,4 +1,16 @@
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { PRODUCT_CATEGORIES, STOCK_NOTE_MAX_LENGTH, type ProductCategory } from '@comanda/shared';
 
 export class CreateProductDto {
@@ -24,4 +36,17 @@ export class AdjustStockDto {
   @IsInt() @Min(0) stock!: number; // novo valor absoluto
   @IsIn(['ENTRADA', 'SAIDA', 'CONTAGEM']) type!: 'ENTRADA' | 'SAIDA' | 'CONTAGEM';
   @IsOptional() @IsString() @MaxLength(STOCK_NOTE_MAX_LENGTH) reason?: string;
+}
+
+export class InventoryItemDto {
+  @IsUUID() productId!: string;
+  @IsInt() @Min(0) stock!: number; // quantidade contada (gramas para carne)
+}
+
+export class InventoryDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => InventoryItemDto)
+  items!: InventoryItemDto[];
 }

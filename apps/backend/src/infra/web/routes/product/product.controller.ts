@@ -14,10 +14,11 @@ import { ListProductsUsecase } from 'src/usecases/product/list/list-products.use
 import { CreateProductUsecase } from 'src/usecases/product/create/create-product.usecase';
 import { RemoveProductUsecase } from 'src/usecases/product/remove/remove-product.usecase';
 import { UpdateProductUsecase } from 'src/usecases/product/update/update-product.usecase';
+import { InventoryUsecase } from 'src/usecases/product/inventory/inventory.usecase';
 import { AdjustStockUsecase } from 'src/usecases/product/adjust-stock/adjust-stock.usecase';
 import { Roles } from 'src/infra/web/auth/decorators/roles.decorator';
 import { CurrentUser, type RequestUser } from 'src/infra/web/auth/request-user';
-import { AdjustStockDto, CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import { AdjustStockDto, CreateProductDto, InventoryDto, UpdateProductDto } from './dto/product.dto';
 
 @Controller('products')
 export class ProductController {
@@ -27,6 +28,7 @@ export class ProductController {
     private readonly removeProductUsecase: RemoveProductUsecase,
     private readonly adjustStockUsecase: AdjustStockUsecase,
     private readonly updateProductUsecase: UpdateProductUsecase,
+    private readonly inventoryUsecase: InventoryUsecase,
   ) {}
 
   @Get()
@@ -74,5 +76,12 @@ export class ProductController {
       reason: body.reason,
       actor: user.username,
     });
+  }
+
+  @Roles('ADMIN')
+  @Post('inventory')
+  @HttpCode(HttpStatus.OK)
+  inventory(@CurrentUser() user: RequestUser, @Body() body: InventoryDto) {
+    return this.inventoryUsecase.execute(body.items, user.username);
   }
 }
