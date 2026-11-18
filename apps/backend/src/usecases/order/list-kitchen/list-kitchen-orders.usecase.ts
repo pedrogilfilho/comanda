@@ -10,6 +10,8 @@ export interface KitchenOrderView {
   clientName: string | null;
   status: OrderStatus;
   createdAt: Date;
+  startedAt: Date | null;
+  readyAt: Date | null;
   items: { productName: string; quantity: number; isMeat: boolean; notes: string | null }[];
 }
 
@@ -40,6 +42,8 @@ export class ListKitchenOrdersUsecase {
         clientName: table?.getClientName() ?? null,
         status: o.getStatus(),
         createdAt: o.getCreatedAt(),
+        startedAt: o.getStartedAt(),
+        readyAt: o.getReadyAt(),
         items: o.getItems().map((it) => ({
           productName: productById.get(it.getProductId())?.getName() ?? 'Item removido',
           quantity: it.getQuantity(),

@@ -38,3 +38,23 @@ describe('Order.changeItemQuantity', () => {
     expect(order.getStatus()).toBe('DELIVERED');
   });
 });
+
+describe('Order: hora de cada etapa', () => {
+  it('grava a hora de cada etapa', () => {
+    const order = Order.create({ tableId: 't', userId: 'u', items: [item(1)] });
+    expect([order.getStartedAt(), order.getReadyAt(), order.getDeliveredAt()]).toEqual([null, null, null]);
+    order.updateStatus('PREPARING');
+    expect(order.getStartedAt()).toBeInstanceOf(Date);
+    order.updateStatus('READY');
+    expect(order.getReadyAt()).toBeInstanceOf(Date);
+    order.updateStatus('DELIVERED');
+    expect(order.getDeliveredAt()).toBeInstanceOf(Date);
+    expect(order.copy().getStartedAt()).toEqual(order.getStartedAt());
+  });
+
+  it('bebida criada entregue grava só a entrega', () => {
+    const order = Order.create({ tableId: 't', userId: 'u', items: [item(1)], status: 'DELIVERED' });
+    expect(order.getStartedAt()).toBeNull();
+    expect(order.getDeliveredAt()).toBeInstanceOf(Date);
+  });
+});

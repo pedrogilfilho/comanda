@@ -30,9 +30,13 @@ export type OrderWithDto = {
   notes: string | null;
   items: OrderItem[];
   closedAccountId?: string | null;
+  times?: OrderTimes;
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type OrderTimes = { startedAt: Date | null; readyAt: Date | null; deliveredAt: Date | null };
+const NO_TIMES: OrderTimes = { startedAt: null, readyAt: null, deliveredAt: null };
 
 export class Order {
   private constructor(
@@ -46,6 +50,7 @@ export class Order {
     private readonly createdAt: Date,
     private updatedAt: Date,
     private readonly closedAccountId: string | null = null,
+    private times: OrderTimes = { ...NO_TIMES },
   ) {}
 
   static create(dto: OrderCreateDto): Order {
@@ -60,6 +65,8 @@ export class Order {
       dto.items,
       new Date(),
       new Date(),
+      null,
+      { ...NO_TIMES, deliveredAt: dto.status === 'DELIVERED' ? new Date() : null },
     );
   }
 
@@ -75,6 +82,7 @@ export class Order {
       dto.createdAt,
       dto.updatedAt,
       dto.closedAccountId ?? null,
+      { ...NO_TIMES, ...dto.times },
     );
   }
 
@@ -109,6 +117,16 @@ export class Order {
     return this.updatedAt;
   }
 
+  getStartedAt(): Date | null {
+    return this.times.startedAt;
+  }
+  getReadyAt(): Date | null {
+    return this.times.readyAt;
+  }
+  getDeliveredAt(): Date | null {
+    return this.times.deliveredAt;
+  }
+
   isActive(): boolean {
     return isActiveOrder(this.status);
   }
@@ -121,6 +139,9 @@ export class Order {
     if (!canTransition(this.status, status)) throw new InvalidOrderTransition(this.status, status);
     this.status = status;
     this.updatedAt = new Date();
+    if (status === 'PREPARING') this.times.startedAt = this.updatedAt;
+    if (status === 'READY') this.times.readyAt = this.updatedAt;
+    if (status === 'DELIVERED') this.times.deliveredAt = this.updatedAt;
   }
 
   // Cópia independente (mesmo id): para calcular a mudança sem mexer no que foi lido
@@ -136,6 +157,7 @@ export class Order {
       this.createdAt,
       this.updatedAt,
       this.closedAccountId,
+      { ...this.times },
     );
   }
 

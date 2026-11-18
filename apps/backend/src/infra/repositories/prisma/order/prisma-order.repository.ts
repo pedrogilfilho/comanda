@@ -33,6 +33,7 @@ export class PrismaOrderRepository extends OrderRepository {
         }),
       ),
       closedAccountId: raw.closedAccountId,
+      times: { startedAt: raw.startedAt, readyAt: raw.readyAt, deliveredAt: raw.deliveredAt },
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -49,6 +50,9 @@ export class PrismaOrderRepository extends OrderRepository {
         notes: order.getNotes(),
         createdAt: order.getCreatedAt(),
         updatedAt: order.getUpdatedAt(),
+        startedAt: order.getStartedAt(),
+        readyAt: order.getReadyAt(),
+        deliveredAt: order.getDeliveredAt(),
         items: {
           create: order.getItems().map((i) => ({
             id: i.getId(),
@@ -116,6 +120,9 @@ export class PrismaOrderRepository extends OrderRepository {
         totalAmount: order.getTotalAmount(),
         notes: order.getNotes(),
         updatedAt: order.getUpdatedAt(),
+        startedAt: order.getStartedAt(),
+        readyAt: order.getReadyAt(),
+        deliveredAt: order.getDeliveredAt(),
       },
     });
   }
@@ -131,6 +138,9 @@ export class PrismaOrderRepository extends OrderRepository {
         status: order.getStatus(),
         totalAmount: order.getTotalAmount(),
         updatedAt: order.getUpdatedAt(),
+        startedAt: order.getStartedAt(),
+        readyAt: order.getReadyAt(),
+        deliveredAt: order.getDeliveredAt(),
       },
     });
     if (count === 0) return false;
