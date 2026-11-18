@@ -19,7 +19,7 @@ import StatTile from '@/components/ui/StatTile';
 import Tabs from '@/components/ui/Tabs';
 
 type ReportKey =
-  'revenue' | 'payments' | 'employees' | 'tables' | 'beers' | 'meats' | 'categories' | 'ticket';
+  'revenue' | 'payments' | 'employees' | 'tables' | 'beers' | 'meats' | 'categories' | 'ticket' | 'kitchen';
 
 const REPORTS: { key: ReportKey; label: string }[] = [
   { key: 'revenue', label: 'Faturamento' },
@@ -30,6 +30,7 @@ const REPORTS: { key: ReportKey; label: string }[] = [
   { key: 'meats', label: 'Carnes com mais saída' },
   { key: 'categories', label: 'Vendas por categoria' },
   { key: 'ticket', label: 'Ticket médio' },
+  { key: 'kitchen', label: 'Tempos da cozinha' },
 ];
 
 const FEE_PERCENT = Math.round(SERVICE_FEE_RATE * 100);
@@ -193,6 +194,22 @@ export default function ReportsView() {
             </p>
             <p className="mt-2 text-sm text-ink-muted">
               Base: {data.revenue.accounts} {data.revenue.accounts === 1 ? 'conta' : 'contas'} {periodLabel}.
+            </p>
+          </div>
+        );
+      case 'kitchen':
+        return data.kitchenTimes.orders === 0 ? (
+          empty
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
+              <StatTile label="Espera até começar" value={`${data.kitchenTimes.waitMin} min`} />
+              <StatTile label="Preparo" value={`${data.kitchenTimes.prepMin} min`} tone="accent" />
+              <StatTile label="Pronto até entregar" value={`${data.kitchenTimes.deliveryMin} min`} />
+            </div>
+            <p className="text-sm text-ink-muted">
+              Média de {data.kitchenTimes.orders} {data.kitchenTimes.orders === 1 ? 'pedido' : 'pedidos'}{' '}
+              {periodLabel}. Bebidas e pedidos de antes desta versão não entram.
             </p>
           </div>
         );

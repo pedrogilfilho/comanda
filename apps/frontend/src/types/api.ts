@@ -152,6 +152,7 @@ export interface Reports {
   byCategory: { category: string; subtotal: number }[];
   byTable: { tableIdentifier: string; total: number; accounts: number; averageTicket: number }[]; // com taxa
   averageTicket: number;
+  kitchenTimes: { orders: number; waitMin: number; prepMin: number; deliveryMin: number }; // médias em minutos
   byPayment: PaymentSummary;
 }
 

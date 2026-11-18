@@ -213,6 +213,22 @@ export async function downloadReportsPdf(data: Reports, from: string, to: string
     columnStyles: { 0: { cellWidth: 10 }, 2: right, 3: right },
   });
 
+  y = section(doc, lastY(doc) + 10, 'Tempos da cozinha (média)');
+  autoTable(doc, {
+    ...tableStyle,
+    startY: y,
+    head: [['Pedidos medidos', 'Espera até começar', 'Preparo', 'Pronto até entregar']],
+    body: [
+      [
+        String(data.kitchenTimes.orders),
+        `${data.kitchenTimes.waitMin} min`,
+        `${data.kitchenTimes.prepMin} min`,
+        `${data.kitchenTimes.deliveryMin} min`,
+      ],
+    ],
+    columnStyles: { 0: right, 1: right, 2: right, 3: right },
+  });
+
   y = section(doc, lastY(doc) + 10, 'Vendas por categoria', data.byCategory.length);
   const catTotal = data.byCategory.reduce((s, c) => s + c.subtotal, 0);
   autoTable(doc, {

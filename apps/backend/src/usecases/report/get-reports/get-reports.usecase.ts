@@ -18,6 +18,8 @@ export interface ReportsView {
   byCategory: { category: string; subtotal: number }[];
   byTable: { tableIdentifier: string; total: number; accounts: number; averageTicket: number }[]; // com taxa
   averageTicket: number; // por conta fechada (com taxa)
+  // Médias em minutos dos pedidos que passaram pela cozinha até ficar prontos (bebida e antigos ficam fora)
+  kitchenTimes: { orders: number; waitMin: number; prepMin: number; deliveryMin: number };
   byPayment: PaymentSummary;
 }
 
@@ -103,6 +105,21 @@ export class GetReportsUsecase {
       }))
       .sort((a, b) => b.total - a.total || a.tableIdentifier.localeCompare(b.tableIdentifier));
 
+    // Tempos da cozinha: só pedidos com início e pronto gravados
+    const measured = orders.filter((o) => o.getStartedAt() && o.getReadyAt());
+    const avgMin = (pairs: [Date | null, Date | null][]) => {
+      const done = pairs.filter((p): p is [Date, Date] => !!p[0] && !!p[1]);
+      if (done.length === 0) return 0;
+      const total = done.reduce((s, [a, b]) => s + (b.getTime() - a.getTime()), 0);
+      return Math.round(total / done.length / 60_000);
+    };
+    const kitchenTimes = {
+      orders: measured.length,
+      waitMin: avgMin(measured.map((o) => [o.getCreatedAt(), o.getStartedAt()])),
+      prepMin: avgMin(measured.map((o) => [o.getStartedAt(), o.getReadyAt()])),
+      deliveryMin: avgMin(measured.map((o) => [o.getReadyAt(), o.getDeliveredAt()])),
+    };
+
     return {
       from,
       to,
@@ -116,6 +133,7 @@ export class GetReportsUsecase {
         .map(([category, sub]) => ({ category, subtotal: sub }))
         .sort((a, b) => b.subtotal - a.subtotal),
       byTable,
+      kitchenTimes,
       averageTicket: accounts.length > 0 ? Math.round(total / accounts.length) : 0,
       byPayment: summarizePayments(accounts.flatMap((a) => a.getPayments())),
     };
