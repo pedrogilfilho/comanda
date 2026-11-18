@@ -26,6 +26,7 @@ export type ClosedAccountCreateDto = {
   clientName: string | null;
   openedAt: Date;
   closedBy: string;
+  openedBy?: string | null; // quem abriu a mesa (garçom da conta)
   subtotal: number;
   serviceFee: number;
   payments: AccountPayment[];
@@ -50,6 +51,7 @@ export class ClosedAccount {
     private readonly serviceFee: number,
     private readonly total: number,
     private readonly payments: AccountPayment[],
+    private readonly openedBy: string | null,
   ) {}
 
   static create(dto: ClosedAccountCreateDto): ClosedAccount {
@@ -65,6 +67,7 @@ export class ClosedAccount {
       dto.serviceFee,
       dto.subtotal + dto.serviceFee,
       dto.payments,
+      dto.openedBy ?? null,
     );
   }
 
@@ -81,6 +84,7 @@ export class ClosedAccount {
       dto.serviceFee,
       dto.total,
       dto.payments,
+      dto.openedBy ?? null,
     );
   }
 
@@ -104,6 +108,9 @@ export class ClosedAccount {
   }
   getClosedBy(): string {
     return this.closedBy;
+  }
+  getOpenedBy(): string | null {
+    return this.openedBy;
   }
   getSubtotal(): number {
     return this.subtotal;

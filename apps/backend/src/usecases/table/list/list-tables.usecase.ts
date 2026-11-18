@@ -9,6 +9,7 @@ export interface TableListItem {
   capacity: number;
   status: TableStatus;
   clientName: string | null;
+  openedBy: string | null; // quem abriu a mesa
   openedAt: Date;
   subtotal: number; // soma dos pedidos ativos (centavos, sem taxa)
   serviceFee: number;
@@ -40,6 +41,7 @@ export class ListTablesUsecase {
         capacity: t.getCapacity(),
         status: t.getStatus(),
         clientName: t.getClientName(),
+        openedBy: t.getOpenedBy(),
         openedAt: t.getOpenedAt() ?? t.getUpdatedAt(),
         subtotal,
         serviceFee: fee,

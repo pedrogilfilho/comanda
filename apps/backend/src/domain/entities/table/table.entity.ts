@@ -8,6 +8,7 @@ export type TableCreateDto = {
   capacity?: number;
   clientName?: string | null;
   status?: TableStatus;
+  openedBy?: string | null;
 };
 
 export type TableWithDto = {
@@ -17,6 +18,7 @@ export type TableWithDto = {
   status: TableStatus;
   clientName: string | null;
   openedAt: Date | null;
+  openedBy?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -31,6 +33,7 @@ export class Table {
     private openedAt: Date | null,
     private readonly createdAt: Date,
     private updatedAt: Date,
+    private openedBy: string | null = null,
   ) {}
 
   static create(dto: TableCreateDto): Table {
@@ -45,6 +48,7 @@ export class Table {
       status === 'OCCUPIED' ? now : null,
       now,
       now,
+      status === 'OCCUPIED' ? (dto.openedBy ?? null) : null,
     );
   }
 
@@ -58,6 +62,7 @@ export class Table {
       dto.openedAt,
       dto.createdAt,
       dto.updatedAt,
+      dto.openedBy ?? null,
     );
   }
 
@@ -79,6 +84,9 @@ export class Table {
   getOpenedAt(): Date | null {
     return this.openedAt;
   }
+  getOpenedBy(): string | null {
+    return this.openedBy;
+  }
   getCreatedAt(): Date {
     return this.createdAt;
   }
@@ -89,9 +97,10 @@ export class Table {
     return this.status === 'OCCUPIED';
   }
 
-  occupy(clientName?: string | null): void {
+  occupy(clientName: string | null, openedBy: string): void {
     this.status = 'OCCUPIED';
     this.clientName = clientName ?? null;
+    this.openedBy = openedBy;
     this.openedAt = new Date();
     this.updatedAt = new Date();
   }
@@ -99,6 +108,7 @@ export class Table {
   free(): void {
     this.status = 'FREE';
     this.clientName = null;
+    this.openedBy = null;
     this.openedAt = null;
     this.updatedAt = new Date();
   }

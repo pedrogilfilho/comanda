@@ -70,6 +70,7 @@ export class CloseTableUsecase {
       clientName: table.getClientName(),
       openedAt: table.getOpenedAt() ?? orders[0].getCreatedAt(),
       closedBy: actor,
+      openedBy: table.getOpenedBy(),
       subtotal,
       serviceFee: fee,
       payments: paid,

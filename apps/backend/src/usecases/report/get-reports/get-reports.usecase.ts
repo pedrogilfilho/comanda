@@ -16,6 +16,7 @@ export interface ReportsView {
   topBeers: { name: string; quantity: number; subtotal: number }[];
   topMeats: { name: string; grams: number; subtotal: number }[];
   byCategory: { category: string; subtotal: number }[];
+  byTable: { tableIdentifier: string; total: number; accounts: number; averageTicket: number }[]; // com taxa
   averageTicket: number; // por conta fechada (com taxa)
   byPayment: PaymentSummary;
 }
@@ -86,6 +87,22 @@ export class GetReportsUsecase {
       }
     }
 
+    // Vendas por mesa: identificador como foi gravado na conta (vale para contas antigas)
+    const tableTotals = new Map<string, { total: number; accounts: number }>();
+    for (const a of accounts) {
+      const cur = tableTotals.get(a.getTableIdentifier()) ?? { total: 0, accounts: 0 };
+      cur.total += a.getTotal();
+      cur.accounts += 1;
+      tableTotals.set(a.getTableIdentifier(), cur);
+    }
+    const byTable = [...tableTotals.entries()]
+      .map(([tableIdentifier, v]) => ({
+        tableIdentifier,
+        ...v,
+        averageTicket: Math.round(v.total / v.accounts),
+      }))
+      .sort((a, b) => b.total - a.total || a.tableIdentifier.localeCompare(b.tableIdentifier));
+
     return {
       from,
       to,
@@ -98,6 +115,7 @@ export class GetReportsUsecase {
       byCategory: [...categories.entries()]
         .map(([category, sub]) => ({ category, subtotal: sub }))
         .sort((a, b) => b.subtotal - a.subtotal),
+      byTable,
       averageTicket: accounts.length > 0 ? Math.round(total / accounts.length) : 0,
       byPayment: summarizePayments(accounts.flatMap((a) => a.getPayments())),
     };

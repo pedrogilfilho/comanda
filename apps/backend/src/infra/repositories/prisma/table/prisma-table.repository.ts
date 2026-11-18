@@ -18,6 +18,7 @@ export class PrismaTableRepository extends TableRepository {
       status: raw.status as TableStatus, // coluna String no banco
       clientName: raw.clientName,
       openedAt: raw.openedAt,
+      openedBy: raw.openedBy,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     });
@@ -47,6 +48,7 @@ export class PrismaTableRepository extends TableRepository {
         status: table.getStatus(),
         clientName: table.getClientName(),
         openedAt: table.getOpenedAt(),
+        openedBy: table.getOpenedBy(),
         createdAt: table.getCreatedAt(),
         updatedAt: table.getUpdatedAt(),
       },
@@ -60,6 +62,7 @@ export class PrismaTableRepository extends TableRepository {
         status: table.getStatus(),
         clientName: table.getClientName(),
         openedAt: table.getOpenedAt(),
+        openedBy: table.getOpenedBy(),
         capacity: table.getCapacity(),
         updatedAt: table.getUpdatedAt(),
       },

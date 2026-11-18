@@ -34,11 +34,17 @@ export class OpenTableUsecase {
       if (existing.isOpen()) {
         throw AppError.badRequest('TABLE_ALREADY_OPEN', `A mesa ${identifier} já está ocupada`);
       }
-      existing.occupy(clientName);
+      existing.occupy(clientName, actor);
       await this.tableRepository.update(existing);
       tableId = existing.getId();
     } else {
-      const table = Table.create({ identifier, capacity: dto.capacity, clientName, status: 'OCCUPIED' });
+      const table = Table.create({
+        identifier,
+        capacity: dto.capacity,
+        clientName,
+        status: 'OCCUPIED',
+        openedBy: actor,
+      });
       await this.tableRepository.create(table);
       tableId = table.getId();
     }

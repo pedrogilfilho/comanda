@@ -16,6 +16,7 @@ export interface ClosedAccountView {
   openedAt: Date;
   closedAt: Date;
   closedBy: string;
+  openedBy: string | null; // quem abriu a mesa (garçom da conta)
   subtotal: number;
   serviceFee: number;
   total: number;
@@ -93,6 +94,7 @@ export class ListClosedAccountsUsecase {
         openedAt: a.getOpenedAt(),
         closedAt: a.getClosedAt(),
         closedBy: a.getClosedBy(),
+        openedBy: a.getOpenedBy(),
         subtotal: a.getSubtotal(),
         serviceFee: a.getServiceFee(),
         total: a.getTotal(),
