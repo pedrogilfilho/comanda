@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Table as TableRow } from '@prisma/client';
+import { Prisma, type Table as TableRow } from '@prisma/client';
 import { PrismaService } from 'src/infra/services/database/prisma/prisma.service';
 import { TableRepository } from 'src/domain/repositories/table.repository.interface';
 import { Table, type TableStatus } from 'src/domain/entities/table/table.entity';
@@ -53,6 +53,32 @@ export class PrismaTableRepository extends TableRepository {
         updatedAt: table.getUpdatedAt(),
       },
     });
+  }
+
+  async createIfAbsent(table: Table): Promise<boolean> {
+    try {
+      await this.create(table);
+      return true;
+    } catch (e) {
+      // identificador único: outra pessoa criou a mesma mesa agora
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return false;
+      throw e;
+    }
+  }
+
+  async occupyIfFree(table: Table, clientName: string | null, openedBy: string): Promise<boolean> {
+    table.occupy(clientName, openedBy);
+    const { count } = await this.prisma.db.table.updateMany({
+      where: { id: table.getId(), status: 'FREE' },
+      data: {
+        status: table.getStatus(),
+        clientName: table.getClientName(),
+        openedAt: table.getOpenedAt(),
+        openedBy: table.getOpenedBy(),
+        updatedAt: table.getUpdatedAt(),
+      },
+    });
+    return count === 1;
   }
 
   async update(table: Table): Promise<void> {

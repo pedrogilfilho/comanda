@@ -198,6 +198,18 @@ export class InMemoryTableRepository extends TableRepository implements Snapshot
   async update(table: Table) {
     this.items = this.items.map((t) => (t.getId() === table.getId() ? table : t));
   }
+  async createIfAbsent(table: Table) {
+    if (this.items.some((t) => t.getIdentifier() === table.getIdentifier())) return false;
+    this.items.push(table);
+    return true;
+  }
+  async occupyIfFree(table: Table, clientName: string | null, openedBy: string) {
+    const current = this.items.find((t) => t.getId() === table.getId());
+    if (!current || current.isOpen()) return false;
+    table.occupy(clientName, openedBy);
+    await this.update(table);
+    return true;
+  }
 }
 
 export class InMemoryUserRepository extends UserRepository implements Snapshotable {

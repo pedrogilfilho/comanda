@@ -27,15 +27,16 @@ export class OpenTableUsecase {
     }
     const clientName = dto.clientName?.trim() || null;
 
+    const alreadyOpen = () =>
+      AppError.badRequest('TABLE_ALREADY_OPEN', `A mesa ${identifier} já está ocupada`);
     const existing = await this.tableRepository.findByIdentifier(identifier);
     let tableId: string;
 
     if (existing) {
       if (existing.isOpen()) {
-        throw AppError.badRequest('TABLE_ALREADY_OPEN', `A mesa ${identifier} já está ocupada`);
+        throw alreadyOpen();
       }
-      existing.occupy(clientName, actor);
-      await this.tableRepository.update(existing);
+      if (!(await this.tableRepository.occupyIfFree(existing, clientName, actor))) throw alreadyOpen();
       tableId = existing.getId();
     } else {
       const table = Table.create({
@@ -45,7 +46,7 @@ export class OpenTableUsecase {
         status: 'OCCUPIED',
         openedBy: actor,
       });
-      await this.tableRepository.create(table);
+      if (!(await this.tableRepository.createIfAbsent(table))) throw alreadyOpen();
       tableId = table.getId();
     }
 
