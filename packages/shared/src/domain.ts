@@ -69,7 +69,8 @@ export type AuditAction =
   | 'ITEM_REMOVIDO'
   | 'ITEM_EDITADO'
   | 'ESTOQUE_AJUSTADO'
-  | 'INVENTARIO_FEITO';
+  | 'INVENTARIO_FEITO'
+  | 'CONFIG_ALTERADA';
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   USUARIO_CRIADO: 'Usuário criado',
@@ -90,4 +91,5 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   ITEM_EDITADO: 'Item editado no cardápio',
   ESTOQUE_AJUSTADO: 'Estoque ajustado',
   INVENTARIO_FEITO: 'Inventário de estoque',
+  CONFIG_ALTERADA: 'Configuração alterada',
 };

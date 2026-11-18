@@ -45,6 +45,7 @@ model Table {
   status    String   @default("FREE") // FREE | OCCUPIED
   clientName String?
   openedAt  DateTime? // quando a mesa foi aberta (sessão atual)
+  openedBy  String?   // username de quem abriu (sessão atual)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
@@ -140,6 +141,7 @@ model ClosedAccount {
   openedAt        DateTime
   closedAt        DateTime @default(now())
   closedBy        String   // username de quem fechou
+  openedBy        String?  // username de quem abriu a mesa (garçom da conta)
   subtotal        Int      // centavos, sem taxa
   serviceFee      Int      // centavos (10%)
   total           Int      // centavos
@@ -164,4 +166,13 @@ model AccountPayment {
 
   @@index([closedAccountId])
   @@map("account_payment")
+}
+
+// Configuração do restaurante (linha única, id = 1)
+model RestaurantConfig {
+  id          Int      @id @default(1)
+  totalTables Int      @default(30)
+  updatedAt   DateTime @updatedAt
+
+  @@map("restaurant_config")
 }

@@ -8,6 +8,8 @@ export const DEFAULT_MIN_STOCK_GRAMS = 10_000; // alerta de estoque baixo (carne
 export const ORDER_NOTE_MAX_LENGTH = 120;
 export const STOCK_NOTE_MAX_LENGTH = 120;
 export const TABLE_IDENTIFIER_MAX_LENGTH = 30;
+export const DEFAULT_TOTAL_TABLES = 30;
+export const MAX_TOTAL_TABLES = 200;
 
 export const DEFAULT_PASSWORD = '123'; // senha inicial; troca obrigatória no 1º acesso
 export const PASSWORD_MIN_LENGTH = 6;
