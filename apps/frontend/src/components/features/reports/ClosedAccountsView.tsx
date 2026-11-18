@@ -21,6 +21,7 @@ import SearchInput from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Field';
 import StatTile from '@/components/ui/StatTile';
 import { SkeletonList } from '@/components/ui/Skeleton';
+import { tableFilter as buildTableFilter } from './tableFilter';
 
 const FEE_PERCENT = Math.round(SERVICE_FEE_RATE * 100);
 
@@ -72,9 +73,12 @@ export default function ClosedAccountsView() {
   };
 
   const multiDay = range.from !== range.to;
+  const tables = useMemo(() => buildTableFilter(data?.accounts ?? [], tableFilter), [data, tableFilter]);
   const accounts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const byTable = (data?.accounts ?? []).filter((a) => !tableFilter || a.tableIdentifier === tableFilter);
+    const byTable = (data?.accounts ?? []).filter(
+      (a) => !tables.active || a.tableIdentifier === tables.active,
+    );
     if (!q) return byTable;
     return byTable.filter(
       (a) =>
@@ -85,16 +89,8 @@ export default function ClosedAccountsView() {
         a.payments.some((p) => paymentText(p).toLowerCase().includes(q)) ||
         a.orders.some((o) => o.waiter.toLowerCase().includes(q)),
     );
-  }, [data, search, tableFilter]);
+  }, [data, search, tables.active]);
 
-  // Mesas que aparecem no período, numeradas primeiro
-  const tableOptions = useMemo(
-    () =>
-      [...new Set((data?.accounts ?? []).map((a) => a.tableIdentifier))].sort((a, b) =>
-        a.localeCompare(b, 'pt-BR', { numeric: true }),
-      ),
-    [data],
-  );
   const divergent = data?.accounts.filter((a) => a.divergent).length ?? 0;
 
   return (
@@ -167,11 +163,11 @@ export default function ClosedAccountsView() {
         <Select
           aria-label="Mesa"
           className="sm:w-40"
-          value={tableFilter}
+          value={tables.active}
           onChange={(e) => setTableFilter(e.target.value)}
         >
           <option value="">Todas as mesas</option>
-          {tableOptions.map((t) => (
+          {tables.options.map((t) => (
             <option key={t} value={t}>
               Mesa {t}
             </option>
@@ -191,8 +187,14 @@ export default function ClosedAccountsView() {
       ) : accounts.length === 0 ? (
         <EmptyState
           icon={ReceiptText}
-          title={search || tableFilter ? 'Nenhuma conta com esse filtro' : 'Nenhuma conta fechada no período'}
-          description={search ? 'Tente outro termo.' : 'Mude o período para ver outros dias.'}
+          title={
+            search || tables.active ? 'Nenhuma conta com esse filtro' : 'Nenhuma conta fechada no período'
+          }
+          description={
+            search || tables.active
+              ? 'Tente outro termo ou outra mesa.'
+              : 'Mude o período para ver outros dias.'
+          }
         />
       ) : (
         <ul className="space-y-2">
