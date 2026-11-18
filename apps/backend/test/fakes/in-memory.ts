@@ -148,6 +148,10 @@ export class InMemoryProductRepository extends ProductRepository implements Snap
     this.items = this.items.map((p) => (p.getId() === product.getId() ? product : p));
     this.stock.set(product.getId(), product.getStock());
   }
+  async updateDetails(product: Product) {
+    // O estoque "do banco" fica como está
+    this.items = this.items.map((p) => (p.getId() === product.getId() ? product : p));
+  }
   async hasOrders() {
     return false;
   }

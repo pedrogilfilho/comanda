@@ -77,12 +77,25 @@ export class PrismaProductRepository extends ProductRepository {
       data: {
         name: product.getName(),
         description: product.getDescription(),
+        available: product.getAvailable(),
+        quantidadeDisponivel: product.getStock(),
+        updatedAt: product.getUpdatedAt(),
+      },
+    });
+  }
+
+  // Edição do cadastro: grava só esses campos, para não desfazer uma venda que baixou o estoque
+  // entre a leitura e a escrita
+  async updateDetails(product: Product): Promise<void> {
+    await this.prisma.db.product.update({
+      where: { id: product.getId() },
+      data: {
+        name: product.getName(),
+        description: product.getDescription(),
         price: product.getPrice(),
         pricePerKg: product.getPricePerKg(),
         minGrams: product.getMinGrams(),
         category: product.getCategory(),
-        available: product.getAvailable(),
-        quantidadeDisponivel: product.getStock(),
         updatedAt: product.getUpdatedAt(),
       },
     });

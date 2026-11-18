@@ -62,7 +62,7 @@ export class UpdateProductUsecase {
       pricePerKg: input.pricePerKg,
       minGrams: input.minGrams,
     });
-    await this.productRepository.update(product);
+    await this.productRepository.updateDetails(product);
     await this.auditLogRepository.create(
       AuditLog.create('ITEM_EDITADO', actor, `${name} (${input.category})`),
     );

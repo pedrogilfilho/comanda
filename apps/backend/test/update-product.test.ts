@@ -83,4 +83,16 @@ describe('UpdateProductUsecase', () => {
       s.usecase.execute(s.beer.getId(), { name: 'Cerveja', category: 'BEBIDA', price: 100 }, 'admin'),
     ).rejects.toMatchObject({ status: 404 });
   });
+
+  it('não desfaz uma venda que entra durante a edição', async () => {
+    const s = setup();
+    const findByName = s.products.findByName.bind(s.products);
+    // A venda baixa o estoque no banco depois que a edição já leu o produto
+    s.products.findByName = async (name: string) => {
+      await s.products.decrementStock(s.beer.getId(), 2);
+      return findByName(name);
+    };
+    await s.usecase.execute(s.beer.getId(), { name: 'Cerveja', category: 'BEBIDA', price: 1600 }, 'admin');
+    expect((await s.products.findById(s.beer.getId()))!.getStock()).toBe(8);
+  });
 });
