@@ -148,6 +148,7 @@ export interface Reports {
   topBeers: { name: string; quantity: number; subtotal: number }[];
   topMeats: { name: string; grams: number; subtotal: number }[];
   byCategory: { category: string; subtotal: number }[];
+  byTable: { tableIdentifier: string; total: number; accounts: number; averageTicket: number }[]; // com taxa
   averageTicket: number;
   byPayment: PaymentSummary;
 }
@@ -160,6 +161,7 @@ export interface ClosedAccount {
   openedAt: string;
   closedAt: string;
   closedBy: string;
+  openedBy: string | null; // quem abriu a mesa (garçom da conta)
   subtotal: number;
   serviceFee: number;
   total: number;

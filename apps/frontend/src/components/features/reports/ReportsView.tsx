@@ -18,12 +18,14 @@ import Skeleton from '@/components/ui/Skeleton';
 import StatTile from '@/components/ui/StatTile';
 import Tabs from '@/components/ui/Tabs';
 
-type ReportKey = 'revenue' | 'payments' | 'employees' | 'beers' | 'meats' | 'categories' | 'ticket';
+type ReportKey =
+  'revenue' | 'payments' | 'employees' | 'tables' | 'beers' | 'meats' | 'categories' | 'ticket';
 
 const REPORTS: { key: ReportKey; label: string }[] = [
   { key: 'revenue', label: 'Faturamento' },
   { key: 'payments', label: 'Formas de pagamento' },
   { key: 'employees', label: 'Vendas por funcionário' },
+  { key: 'tables', label: 'Vendas por mesa' },
   { key: 'beers', label: 'Cervejas mais vendidas' },
   { key: 'meats', label: 'Carnes com mais saída' },
   { key: 'categories', label: 'Vendas por categoria' },
@@ -126,6 +128,19 @@ export default function ReportsView() {
               value: e.subtotal,
               display: money(e.subtotal),
               hint: `${e.orders} ${e.orders === 1 ? 'pedido' : 'pedidos'}`,
+            }))}
+          />
+        );
+      case 'tables':
+        return data.byTable.length === 0 ? (
+          empty
+        ) : (
+          <BarList
+            rows={data.byTable.map((t) => ({
+              label: `Mesa ${t.tableIdentifier}`,
+              value: t.total,
+              display: money(t.total),
+              hint: `${t.accounts} ${t.accounts === 1 ? 'conta' : 'contas'} · ticket ${money(t.averageTicket)}`,
             }))}
           />
         );

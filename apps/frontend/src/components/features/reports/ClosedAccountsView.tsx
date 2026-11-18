@@ -18,6 +18,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import Icon from '@/components/ui/Icon';
 import PageTitle from '@/components/ui/PageTitle';
 import SearchInput from '@/components/ui/SearchInput';
+import { Select } from '@/components/ui/Field';
 import StatTile from '@/components/ui/StatTile';
 import { SkeletonList } from '@/components/ui/Skeleton';
 
@@ -36,6 +37,7 @@ export default function ClosedAccountsView() {
   const [data, setData] = useState<ClosedAccountsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [tableFilter, setTableFilter] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -72,16 +74,27 @@ export default function ClosedAccountsView() {
   const multiDay = range.from !== range.to;
   const accounts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q || !data) return data?.accounts ?? [];
-    return data.accounts.filter(
+    const byTable = (data?.accounts ?? []).filter((a) => !tableFilter || a.tableIdentifier === tableFilter);
+    if (!q) return byTable;
+    return byTable.filter(
       (a) =>
         a.tableIdentifier.toLowerCase().includes(q) ||
+        (a.openedBy ?? '').toLowerCase().includes(q) ||
         (a.clientName ?? '').toLowerCase().includes(q) ||
         a.closedBy.toLowerCase().includes(q) ||
         a.payments.some((p) => paymentText(p).toLowerCase().includes(q)) ||
         a.orders.some((o) => o.waiter.toLowerCase().includes(q)),
     );
-  }, [data, search]);
+  }, [data, search, tableFilter]);
+
+  // Mesas que aparecem no período, numeradas primeiro
+  const tableOptions = useMemo(
+    () =>
+      [...new Set((data?.accounts ?? []).map((a) => a.tableIdentifier))].sort((a, b) =>
+        a.localeCompare(b, 'pt-BR', { numeric: true }),
+      ),
+    [data],
+  );
   const divergent = data?.accounts.filter((a) => a.divergent).length ?? 0;
 
   return (
@@ -150,19 +163,35 @@ export default function ClosedAccountsView() {
         </p>
       )}
 
-      <SearchInput
-        label="Filtrar contas"
-        placeholder="Filtrar por mesa, cliente, funcionário ou pagamento (ex.: pix)"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Select
+          aria-label="Mesa"
+          className="sm:w-40"
+          value={tableFilter}
+          onChange={(e) => setTableFilter(e.target.value)}
+        >
+          <option value="">Todas as mesas</option>
+          {tableOptions.map((t) => (
+            <option key={t} value={t}>
+              Mesa {t}
+            </option>
+          ))}
+        </Select>
+        <SearchInput
+          className="flex-1"
+          label="Filtrar contas"
+          placeholder="Filtrar por mesa, cliente, funcionário ou pagamento (ex.: pix)"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       {loading ? (
         <SkeletonList rows={3} />
       ) : accounts.length === 0 ? (
         <EmptyState
           icon={ReceiptText}
-          title={search ? 'Nenhuma conta com esse filtro' : 'Nenhuma conta fechada no período'}
+          title={search || tableFilter ? 'Nenhuma conta com esse filtro' : 'Nenhuma conta fechada no período'}
           description={search ? 'Tente outro termo.' : 'Mude o período para ver outros dias.'}
         />
       ) : (
@@ -200,7 +229,8 @@ export default function ClosedAccountsView() {
                       )
                     </p>
                     <p>
-                      Fechada por <strong className="text-ink">{a.closedBy}</strong> · {a.orders.length}{' '}
+                      Garçom <strong className="text-ink">{a.openedBy ?? '—'}</strong> · Fechada por{' '}
+                      <strong className="text-ink">{a.closedBy}</strong> · {a.orders.length}{' '}
                       {a.orders.length === 1 ? 'pedido' : 'pedidos'}
                     </p>
                     {a.payments.length > 0 && <p>{a.payments.map(paymentText).join(' + ')}</p>}

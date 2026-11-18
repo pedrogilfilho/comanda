@@ -174,6 +174,23 @@ export async function downloadReportsPdf(data: Reports, from: string, to: string
     columnStyles: { 0: { cellWidth: 10 }, 2: right, 3: right },
   });
 
+  y = section(doc, lastY(doc) + 10, 'Vendas por mesa', data.byTable.length);
+  autoTable(doc, {
+    ...tableStyle,
+    startY: y,
+    head: [['#', 'Mesa', 'Contas', 'Ticket médio', 'Total']],
+    body: data.byTable.length
+      ? data.byTable.map((t, i) => [
+          String(i + 1),
+          plain(t.tableIdentifier),
+          String(t.accounts),
+          money(t.averageTicket),
+          money(t.total),
+        ])
+      : empty(5),
+    columnStyles: { 0: { cellWidth: 10 }, 2: right, 3: right, 4: right },
+  });
+
   y = section(doc, lastY(doc) + 10, 'Cervejas mais vendidas', data.topBeers.length);
   autoTable(doc, {
     ...tableStyle,
