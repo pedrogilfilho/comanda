@@ -19,6 +19,8 @@
   --warning: 154 95 20; /* #9a5f14 */
   --danger: 176 58 46; /* #b03a2e */
   --on-accent: 255 255 255; /* texto sobre accent-strong (botão principal) */
+  --header: 42 31 20; /* barra do topo: escura nos dois temas */
+  --on-header: 255 249 242;
 
   color-scheme: light;
 }
@@ -37,6 +39,8 @@
   --warning: 214 160 70; /* #d6a046 */
   --danger: 225 110 95; /* #e16e5f */
   --on-accent: 24 20 16; /* texto escuro sobre o laranja claro */
+  --header: 14 11 8;
+  --on-header: 243 236 226;
 
   color-scheme: dark;
 }

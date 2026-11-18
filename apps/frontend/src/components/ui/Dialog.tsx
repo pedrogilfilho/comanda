@@ -97,7 +97,7 @@ export default function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/50 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-header/60 sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && dismissible) onClose();
       }}

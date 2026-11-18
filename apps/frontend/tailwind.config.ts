@@ -19,6 +19,8 @@ const config: Config = {
       hairline: 'rgb(var(--ink) / 0.14)',
       accent: token('accent'),
       'on-accent': token('on-accent'),
+      header: token('header'),
+      'on-header': token('on-header'),
       'accent-strong': token('accent-strong'),
       success: token('success'),
       warning: token('warning'),

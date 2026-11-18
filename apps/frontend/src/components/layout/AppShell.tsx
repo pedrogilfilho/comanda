@@ -14,7 +14,7 @@ import Icon from '@/components/ui/Icon';
 function Brand() {
   return (
     <Link href="/" className="flex min-h-tap items-center min-w-0 rounded-sm">
-      <span className="font-display text-lg sm:text-xl font-bold text-surface truncate">
+      <span className="font-display text-lg sm:text-xl font-bold text-on-header truncate">
         Quintal do Roger
       </span>
     </Link>
@@ -22,16 +22,16 @@ function Brand() {
 }
 
 const headerAction =
-  'inline-flex items-center gap-2 min-h-tap min-w-tap justify-center rounded-md px-2 sm:px-3 text-sm font-medium text-surface/80 hover:text-surface hover:bg-surface/10 transition-colors';
+  'inline-flex items-center gap-2 min-h-tap min-w-tap justify-center rounded-md px-2 sm:px-3 text-sm font-medium text-on-header/80 hover:text-on-header hover:bg-on-header/10 transition-colors';
 
 // Esqueleto da tela enquanto o GET /auth/me responde
 export function ShellSkeleton() {
   return (
     <div className="min-h-screen bg-bg" aria-busy="true" aria-label="Carregando">
-      <header className="bg-ink">
+      <header className="bg-header">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 py-2">
           <Brand />
-          <div className="h-8 w-28 animate-pulse rounded-sm bg-surface/10" />
+          <div className="h-8 w-28 animate-pulse rounded-sm bg-on-header/10" />
         </div>
       </header>
       <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 py-6 sm:py-8">
@@ -68,15 +68,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         Pular para o conteúdo
       </a>
-      <header className="bg-ink">
+      <header className="bg-header">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 py-2">
           <Brand />
           <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
             <div className="mr-1 text-right leading-tight">
-              <p className="max-w-[120px] truncate text-sm font-semibold text-surface sm:max-w-none">
+              <p className="max-w-[120px] truncate text-sm font-semibold text-on-header sm:max-w-none">
                 {user.name}
               </p>
-              <p className="text-xs text-surface/70">{ROLE_LABEL[user.role] ?? user.role}</p>
+              <p className="text-xs text-on-header/70">{ROLE_LABEL[user.role] ?? user.role}</p>
             </div>
             <Link href="/configuracoes" className={headerAction} aria-label="Configurações">
               <Icon icon={Settings} />
