@@ -105,11 +105,21 @@ export default function TablesView() {
               <p className="text-base font-semibold text-accent-strong tabular-nums">
                 {money(t.total)} <span className="text-xs font-normal text-ink-muted">com taxa</span>
               </p>
-              <div className="mt-auto grid grid-cols-2 gap-2 pt-1">
-                <Button size="sm" variant="secondary" onClick={() => setModal({ kind: 'orders', table: t })}>
+              {/* Lado a lado quando cabem; senão um embaixo do outro, sem quebrar o texto */}
+              <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="flex-1 whitespace-nowrap"
+                  onClick={() => setModal({ kind: 'orders', table: t })}
+                >
                   Ver pedidos
                 </Button>
-                <Button size="sm" onClick={() => setModal({ kind: 'account', table: t })}>
+                <Button
+                  size="sm"
+                  className="flex-1 whitespace-nowrap"
+                  onClick={() => setModal({ kind: 'account', table: t })}
+                >
                   Ver conta
                 </Button>
               </div>

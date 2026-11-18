@@ -98,8 +98,9 @@ export class PrismaProductRepository extends ProductRepository {
       UPDATE "product"
       SET "quantidadeDisponivel" = "quantidadeDisponivel" - ${quantity}, "updatedAt" = NOW()
       WHERE id = ${id} AND "quantidadeDisponivel" >= ${quantity}
-      RETURNING "quantidadeDisponivel" + ${quantity} AS before`;
-    return rows.length > 0 ? rows[0].before : null;
+      RETURNING ("quantidadeDisponivel" + ${quantity})::int AS before`;
+    // ::int e Number(): sem isso o Postgres devolve bigint e o Prisma entrega BigInt
+    return rows.length > 0 ? Number(rows[0].before) : null;
   }
 
   async incrementStock(id: string, quantity: number): Promise<number> {
@@ -107,7 +108,7 @@ export class PrismaProductRepository extends ProductRepository {
       UPDATE "product"
       SET "quantidadeDisponivel" = "quantidadeDisponivel" + ${quantity}, "updatedAt" = NOW()
       WHERE id = ${id}
-      RETURNING "quantidadeDisponivel" - ${quantity} AS before`;
-    return rows[0]?.before ?? 0;
+      RETURNING ("quantidadeDisponivel" - ${quantity})::int AS before`;
+    return Number(rows[0]?.before ?? 0);
   }
 }

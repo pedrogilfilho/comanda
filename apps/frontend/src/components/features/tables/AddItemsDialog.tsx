@@ -332,7 +332,7 @@ export default function AddItemsDialog({
                         <div className="ml-auto flex items-center gap-1">
                           <IconButton
                             icon={Minus}
-                            label={`Tirar um ${p.name}`}
+                            label={`Tirar uma unidade de ${p.name}`}
                             onClick={() => changeUnits(p, -1)}
                             className="border border-hairline"
                           />
@@ -341,7 +341,7 @@ export default function AddItemsDialog({
                           </span>
                           <IconButton
                             icon={Plus}
-                            label={`Mais um ${p.name}`}
+                            label={`Mais uma unidade de ${p.name}`}
                             onClick={() => changeUnits(p, 1)}
                             className="border border-hairline"
                           />

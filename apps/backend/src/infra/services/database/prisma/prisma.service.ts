@@ -11,8 +11,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly client: PrismaClient;
   private readonly context = new AsyncLocalStorage<PrismaDb>();
 
-  constructor(databaseUrl: string = process.env.DATABASE_URL ?? '') {
-    this.client = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+  // Sem parâmetros no construtor: o Nest trataria qualquer parâmetro como dependência a injetar.
+  // O PrismaClient lê DATABASE_URL sozinho.
+  constructor() {
+    this.client = new PrismaClient();
   }
 
   get db(): PrismaDb {
