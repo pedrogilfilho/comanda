@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { ROLE_LABEL } from '@comanda/shared';
 import { useSession } from '@/hooks/useSession';
 import { NAV_BY_ROLE, canAccess, homeFor } from '@/constants';
@@ -78,9 +78,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </p>
               <p className="text-xs text-surface/70">{ROLE_LABEL[user.role] ?? user.role}</p>
             </div>
-            <Link href="/seguranca" className={headerAction} aria-label="Segurança da conta">
-              <Icon icon={ShieldCheck} />
-              <span className="hidden sm:inline">Segurança</span>
+            <Link href="/configuracoes" className={headerAction} aria-label="Configurações">
+              <Icon icon={Settings} />
+              <span className="hidden sm:inline">Configurações</span>
             </Link>
             <button type="button" onClick={logout} className={headerAction} aria-label="Sair">
               <Icon icon={LogOut} />

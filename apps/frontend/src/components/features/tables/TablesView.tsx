@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Settings2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEFAULT_TOTAL_TABLES } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
@@ -24,12 +24,11 @@ import OrdersDialog from './OrdersDialog';
 import AddItemsDialog from './AddItemsDialog';
 import TableAccountDialog from './TableAccountDialog';
 import PickTableDialog from './PickTableDialog';
-import TotalTablesDialog from './TotalTablesDialog';
 import { buildTableMap, openFor } from './tableMap';
 
 type Modal =
   | { kind: 'open'; identifier: string }
-  | { kind: 'pick' | 'total' }
+  | { kind: 'pick' }
   | { kind: 'actions' | 'orders' | 'account'; table: Table }
   | { kind: 'addItems'; table: Table; back: 'orders' | 'none' }
   | null;
@@ -38,7 +37,6 @@ type Modal =
 export default function TablesView() {
   const { user } = useSession();
   const isManager = user.role !== 'GARCOM';
-  const isAdmin = user.role === 'ADMIN';
   const [tables, setTables] = useState<Table[]>([]);
   const [total, setTotal] = useState(DEFAULT_TOTAL_TABLES);
   const [loading, setLoading] = useState(true);
@@ -74,11 +72,6 @@ export default function TablesView() {
         subtitle={isManager ? 'Mesas em funcionamento e fechamento de contas' : 'Mesas em funcionamento'}
         actions={
           <>
-            {isAdmin && (
-              <Button variant="secondary" icon={Settings2} onClick={() => setModal({ kind: 'total' })}>
-                {total} mesas
-              </Button>
-            )}
             <Button
               icon={Plus}
               disabled={occupied.length === 0}
@@ -160,10 +153,6 @@ export default function TablesView() {
 
       {modal?.kind === 'open' && (
         <OpenTableDialog identifier={modal.identifier} onClose={() => setModal(null)} onOpened={load} />
-      )}
-
-      {modal?.kind === 'total' && (
-        <TotalTablesDialog current={total} onClose={() => setModal(null)} onSaved={setTotal} />
       )}
 
       {modal?.kind === 'pick' && (
