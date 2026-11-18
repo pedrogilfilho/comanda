@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { ORDER_STATUS_LABEL, canTransition, type OrderStatus } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { getTableAccount, updateOrderStatus } from '@/services/orders';
-import type { OrderView, Table, TableAccount } from '@/types/api';
+import type { OrderItemView, OrderView, Table, TableAccount } from '@/types/api';
 import { money, weight, time } from '@/lib/format';
 import { useSession } from '@/hooks/useSession';
 import Badge, { type BadgeTone } from '@/components/ui/Badge';
@@ -16,6 +16,8 @@ import Dialog from '@/components/ui/Dialog';
 import EmptyState from '@/components/ui/EmptyState';
 import Field, { Input } from '@/components/ui/Field';
 import { SkeletonList } from '@/components/ui/Skeleton';
+import ChangeItemDialog from './ChangeItemDialog';
+import { canChangeItem } from './itemChange';
 
 const STATUS_TONE: Partial<Record<OrderStatus, BadgeTone>> = {
   PENDING: 'neutral',
@@ -38,6 +40,7 @@ export default function OrdersDialog({ table, onClose, onAddItems, onChanged }: 
   const [toCancel, setToCancel] = useState<OrderView | null>(null);
   const [reason, setReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const [toChange, setToChange] = useState<{ orderId: string; item: OrderItemView } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -112,7 +115,19 @@ export default function OrdersDialog({ table, onClose, onAddItems, onChanged }: 
                         </span>
                         {it.notes && <span className="block text-xs text-warning">Obs.: {it.notes}</span>}
                       </span>
-                      <span className="whitespace-nowrap tabular-nums">{money(it.subtotal)}</span>
+                      <span className="flex items-center gap-2 whitespace-nowrap tabular-nums">
+                        {money(it.subtotal)}
+                        {canChangeItem(user.role, o.status) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Alterar ${it.productName}`}
+                            onClick={() => setToChange({ orderId: o.id, item: it })}
+                          >
+                            Alterar
+                          </Button>
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -135,6 +150,19 @@ export default function OrdersDialog({ table, onClose, onAddItems, onChanged }: 
           </ul>
         )}
       </Dialog>
+
+      {toChange && (
+        <ChangeItemDialog
+          orderId={toChange.orderId}
+          item={toChange.item}
+          role={user.role}
+          onClose={() => setToChange(null)}
+          onChanged={() => {
+            load();
+            onChanged();
+          }}
+        />
+      )}
 
       {toCancel && (
         <ConfirmDialog
