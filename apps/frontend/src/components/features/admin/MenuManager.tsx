@@ -7,10 +7,11 @@ import { DEFAULT_MIN_GRAMS } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { createProduct, removeProduct } from '@/services/products';
 import type { Product, ProductCategory } from '@/types/api';
-import { money, weight, toCents, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format';
+import { money, weight, toCents } from '@/lib/format';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import CategorySections from '@/components/ui/CategorySections';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Dialog, { DialogActions } from '@/components/ui/Dialog';
 import Field, { Input, Select } from '@/components/ui/Field';
@@ -99,11 +100,6 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
     }
   };
 
-  const grouped: Record<string, Product[]> = {};
-  products.forEach((p) => {
-    (grouped[p.category] = grouped[p.category] || []).push(p);
-  });
-
   return (
     <div className="space-y-6">
       <PageTitle
@@ -119,53 +115,45 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
       {loading ? (
         <SkeletonList rows={4} />
       ) : (
-        <div className="space-y-6">
-          {CATEGORY_ORDER.filter((c) => grouped[c]?.length).map((cat) => (
-            <section key={cat} aria-labelledby={`menu-${cat}`}>
-              <h2 id={`menu-${cat}`} className="mb-2 text-sm font-semibold text-ink-muted">
-                {CATEGORY_LABEL[cat]}
-              </h2>
-              <ul className="space-y-2">
-                {grouped[cat].map((p) => (
-                  <Card
-                    as="li"
-                    key={p.id}
-                    padding="sm"
-                    className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
-                        {p.name}
-                        {p.isMeat && (
-                          <Badge tone="accent">Por peso · mínimo {p.minGrams ?? DEFAULT_MIN_GRAMS} g</Badge>
-                        )}
-                        {p.lowStock && (
-                          <Badge tone="danger">
-                            Estoque baixo: {p.isMeat ? weight(p.stock) : `${p.stock} un`}
-                          </Badge>
-                        )}
-                      </p>
-                      {p.description && <p className="mt-0.5 text-sm text-ink-muted">{p.description}</p>}
-                    </div>
-                    <div className="flex items-center justify-between gap-3 sm:justify-end">
-                      <span className="whitespace-nowrap font-bold text-accent-strong tabular-nums">
-                        {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}
-                      </span>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => setToRemove(p)}
-                        aria-label={`Remover ${p.name} do cardápio`}
-                      >
-                        Remover
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <CategorySections
+          storageKey="cardapio"
+          idPrefix="menu"
+          products={products}
+          renderItem={(p) => (
+            <Card
+              as="li"
+              key={p.id}
+              padding="sm"
+              className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-2 font-semibold text-ink">
+                  {p.name}
+                  {p.isMeat && (
+                    <Badge tone="accent">Por peso · mínimo {p.minGrams ?? DEFAULT_MIN_GRAMS} g</Badge>
+                  )}
+                  {p.lowStock && (
+                    <Badge tone="danger">Estoque baixo: {p.isMeat ? weight(p.stock) : `${p.stock} un`}</Badge>
+                  )}
+                </p>
+                {p.description && <p className="mt-0.5 text-sm text-ink-muted">{p.description}</p>}
+              </div>
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                <span className="whitespace-nowrap font-bold text-accent-strong tabular-nums">
+                  {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}
+                </span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setToRemove(p)}
+                  aria-label={`Remover ${p.name} do cardápio`}
+                >
+                  Remover
+                </Button>
+              </div>
+            </Card>
+          )}
+        />
       )}
 
       {showCreate && (

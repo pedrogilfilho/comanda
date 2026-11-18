@@ -6,10 +6,11 @@ import { toast } from 'sonner';
 import { STOCK_NOTE_MAX_LENGTH } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
 import { Product, adjustStock } from '@/services/products';
-import { weight, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format';
+import { weight } from '@/lib/format';
 import { cx } from '@/lib/cx';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import CategorySections from '@/components/ui/CategorySections';
 import Card from '@/components/ui/Card';
 import Dialog, { DialogActions } from '@/components/ui/Dialog';
 import Field, { Input, Select } from '@/components/ui/Field';
@@ -111,11 +112,6 @@ export default function StockManager({ products, loading, onChange }: StockManag
     }
   };
 
-  const grouped: Record<string, Product[]> = {};
-  products.forEach((p) => {
-    (grouped[p.category] = grouped[p.category] || []).push(p);
-  });
-
   const unit = target?.isMeat ? 'kg' : 'unidades';
 
   return (
@@ -143,57 +139,51 @@ export default function StockManager({ products, loading, onChange }: StockManag
       {loading ? (
         <SkeletonList rows={4} />
       ) : (
-        <div className="space-y-6">
-          {CATEGORY_ORDER.filter((c) => grouped[c]?.length).map((cat) => (
-            <section key={cat} aria-labelledby={`stock-${cat}`}>
-              <h2 id={`stock-${cat}`} className="mb-2 text-sm font-semibold text-ink-muted">
-                {CATEGORY_LABEL[cat]}
-              </h2>
-              <ul className="space-y-2">
-                {grouped[cat].map((p) => {
-                  const pct = Math.min(100, (p.stock / Math.max(1, p.minStock * 5)) * 100);
-                  return (
-                    <Card
-                      as="li"
-                      key={p.id}
-                      padding="sm"
-                      tone={p.lowStock ? 'warning' : 'default'}
-                      className="flex flex-col gap-3 sm:flex-row sm:items-center"
+        <CategorySections
+          storageKey="estoque"
+          idPrefix="stock"
+          products={products}
+          renderItem={(p) => {
+            const pct = Math.min(100, (p.stock / Math.max(1, p.minStock * 5)) * 100);
+            return (
+              <Card
+                as="li"
+                key={p.id}
+                padding="sm"
+                tone={p.lowStock ? 'warning' : 'default'}
+                className="flex flex-col gap-3 sm:flex-row sm:items-center"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink">{p.name}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="h-1.5 w-24 rounded-full bg-surface-2" aria-hidden>
+                      <div
+                        className={cx('h-1.5 rounded-full', p.lowStock ? 'bg-warning' : 'bg-success')}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span
+                      className={cx(
+                        'text-sm font-medium tabular-nums',
+                        p.lowStock ? 'text-warning' : 'text-ink-muted',
+                      )}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-ink">{p.name}</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="h-1.5 w-24 rounded-full bg-surface-2" aria-hidden>
-                            <div
-                              className={cx('h-1.5 rounded-full', p.lowStock ? 'bg-warning' : 'bg-success')}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span
-                            className={cx(
-                              'text-sm font-medium tabular-nums',
-                              p.lowStock ? 'text-warning' : 'text-ink-muted',
-                            )}
-                          >
-                            {show(p, p.stock)}
-                          </span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => open(p)}
-                        aria-label={`Ajustar estoque de ${p.name}`}
-                      >
-                        Ajustar estoque
-                      </Button>
-                    </Card>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
+                      {show(p, p.stock)}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => open(p)}
+                  aria-label={`Ajustar estoque de ${p.name}`}
+                >
+                  Ajustar estoque
+                </Button>
+              </Card>
+            );
+          }}
+        />
       )}
 
       {target && (
