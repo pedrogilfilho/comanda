@@ -30,12 +30,20 @@ export class TableController {
   @Roles('GARCOM', 'GERENTE', 'ADMIN')
   @Post(':id/close')
   @HttpCode(HttpStatus.OK)
-  close(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: CloseTableDto) {
+  close(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CloseTableDto,
+  ) {
     return this.closeTableUsecase.execute({
       tableId: id,
       actor: user.username,
       actorRole: user.role,
-      payments: (body.payments ?? []).map((p) => ({ method: p.method, amount: p.amount, installments: p.installments ?? 1 })),
+      payments: (body.payments ?? []).map((p) => ({
+        method: p.method,
+        amount: p.amount,
+        installments: p.installments ?? 1,
+      })),
     });
   }
 }

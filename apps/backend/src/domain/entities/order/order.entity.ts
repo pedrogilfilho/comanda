@@ -64,24 +64,56 @@ export class Order {
 
   static with(dto: OrderWithDto): Order {
     return new Order(
-      dto.id, dto.tableId, dto.userId, dto.status, dto.totalAmount,
-      dto.notes, dto.items, dto.createdAt, dto.updatedAt, dto.closedAccountId ?? null,
+      dto.id,
+      dto.tableId,
+      dto.userId,
+      dto.status,
+      dto.totalAmount,
+      dto.notes,
+      dto.items,
+      dto.createdAt,
+      dto.updatedAt,
+      dto.closedAccountId ?? null,
     );
   }
 
-  getId(): string { return this.id; }
-  getTableId(): string { return this.tableId; }
-  getUserId(): string { return this.userId; }
-  getStatus(): OrderStatus { return this.status; }
-  getTotalAmount(): number { return this.totalAmount; }
-  getNotes(): string | null { return this.notes; }
-  getItems(): OrderItem[] { return this.items; }
-  getCreatedAt(): Date { return this.createdAt; }
-  getClosedAccountId(): string | null { return this.closedAccountId; }
-  getUpdatedAt(): Date { return this.updatedAt; }
+  getId(): string {
+    return this.id;
+  }
+  getTableId(): string {
+    return this.tableId;
+  }
+  getUserId(): string {
+    return this.userId;
+  }
+  getStatus(): OrderStatus {
+    return this.status;
+  }
+  getTotalAmount(): number {
+    return this.totalAmount;
+  }
+  getNotes(): string | null {
+    return this.notes;
+  }
+  getItems(): OrderItem[] {
+    return this.items;
+  }
+  getCreatedAt(): Date {
+    return this.createdAt;
+  }
+  getClosedAccountId(): string | null {
+    return this.closedAccountId;
+  }
+  getUpdatedAt(): Date {
+    return this.updatedAt;
+  }
 
-  isActive(): boolean { return isActiveOrder(this.status); }
-  isInKitchen(): boolean { return isInKitchen(this.status); }
+  isActive(): boolean {
+    return isActiveOrder(this.status);
+  }
+  isInKitchen(): boolean {
+    return isInKitchen(this.status);
+  }
 
   // Só transições previstas na máquina de estados; CLOSED acontece pelo fechamento da conta
   updateStatus(status: OrderStatus): void {

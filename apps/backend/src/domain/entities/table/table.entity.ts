@@ -50,19 +50,44 @@ export class Table {
 
   static with(dto: TableWithDto): Table {
     return new Table(
-      dto.id, dto.identifier, dto.capacity, dto.status, dto.clientName, dto.openedAt, dto.createdAt, dto.updatedAt,
+      dto.id,
+      dto.identifier,
+      dto.capacity,
+      dto.status,
+      dto.clientName,
+      dto.openedAt,
+      dto.createdAt,
+      dto.updatedAt,
     );
   }
 
-  getId(): string { return this.id; }
-  getIdentifier(): string { return this.identifier; }
-  getCapacity(): number { return this.capacity; }
-  getStatus(): TableStatus { return this.status; }
-  getClientName(): string | null { return this.clientName; }
-  getOpenedAt(): Date | null { return this.openedAt; }
-  getCreatedAt(): Date { return this.createdAt; }
-  getUpdatedAt(): Date { return this.updatedAt; }
-  isOpen(): boolean { return this.status === 'OCCUPIED'; }
+  getId(): string {
+    return this.id;
+  }
+  getIdentifier(): string {
+    return this.identifier;
+  }
+  getCapacity(): number {
+    return this.capacity;
+  }
+  getStatus(): TableStatus {
+    return this.status;
+  }
+  getClientName(): string | null {
+    return this.clientName;
+  }
+  getOpenedAt(): Date | null {
+    return this.openedAt;
+  }
+  getCreatedAt(): Date {
+    return this.createdAt;
+  }
+  getUpdatedAt(): Date {
+    return this.updatedAt;
+  }
+  isOpen(): boolean {
+    return this.status === 'OCCUPIED';
+  }
 
   occupy(clientName?: string | null): void {
     this.status = 'OCCUPIED';

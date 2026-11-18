@@ -3,7 +3,10 @@ import { OrderRepository } from 'src/domain/repositories/order.repository.interf
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
 import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.repository.interface';
-import { summarizePayments, type PaymentSummary } from 'src/domain/entities/closed-account/closed-account.entity';
+import {
+  summarizePayments,
+  type PaymentSummary,
+} from 'src/domain/entities/closed-account/closed-account.entity';
 
 export interface ReportsView {
   from: Date;
@@ -31,7 +34,9 @@ export class GetReportsUsecase {
     const accounts = await this.closedAccountRepository.findBetween(from, to);
     const orders = await this.orderRepository.findByClosedAccountIds(accounts.map((a) => a.getId()));
     const [products, users] = await Promise.all([
-      this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]),
+      this.productRepository.findByIds([
+        ...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId()))),
+      ]),
       this.userRepository.findByIds([...new Set(orders.map((o) => o.getUserId()))]),
     ]);
     const productById = new Map(products.map((p) => [p.getId(), p]));
@@ -86,9 +91,13 @@ export class GetReportsUsecase {
       to,
       revenue: { subtotal, serviceFee, total, accounts: accounts.length },
       topEmployees,
-      topBeers: [...beers.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.quantity - a.quantity),
+      topBeers: [...beers.entries()]
+        .map(([name, v]) => ({ name, ...v }))
+        .sort((a, b) => b.quantity - a.quantity),
       topMeats: [...meats.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.grams - a.grams),
-      byCategory: [...categories.entries()].map(([category, sub]) => ({ category, subtotal: sub })).sort((a, b) => b.subtotal - a.subtotal),
+      byCategory: [...categories.entries()]
+        .map(([category, sub]) => ({ category, subtotal: sub }))
+        .sort((a, b) => b.subtotal - a.subtotal),
       averageTicket: accounts.length > 0 ? Math.round(total / accounts.length) : 0,
       byPayment: summarizePayments(accounts.flatMap((a) => a.getPayments())),
     };

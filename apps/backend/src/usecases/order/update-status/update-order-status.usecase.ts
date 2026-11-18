@@ -22,7 +22,12 @@ export class UpdateOrderStatusUsecase {
     private readonly auditLogRepository: AuditLogRepository,
   ) {}
 
-  async execute(orderId: string, status: OrderStatus, actor: string, reason?: string): Promise<{ success: boolean }> {
+  async execute(
+    orderId: string,
+    status: OrderStatus,
+    actor: string,
+    reason?: string,
+  ): Promise<{ success: boolean }> {
     const order = await this.orderRepository.findById(orderId);
     if (!order) throw AppError.notFound('Pedido não encontrado');
 
@@ -48,21 +53,38 @@ export class UpdateOrderStatusUsecase {
       // Cancelamento devolve ao estoque tudo o que o pedido tinha baixado
       if (status === 'CANCELLED') {
         const byProduct = new Map<string, number>();
-        for (const it of order.getItems()) byProduct.set(it.getProductId(), (byProduct.get(it.getProductId()) ?? 0) + it.getQuantity());
+        for (const it of order.getItems())
+          byProduct.set(it.getProductId(), (byProduct.get(it.getProductId()) ?? 0) + it.getQuantity());
         for (const [productId, quantity] of byProduct) {
           const stockBefore = await this.productRepository.incrementStock(productId, quantity);
           await this.stockMovementRepository.create(
-            StockMovement.create({ productId, before: stockBefore, after: stockBefore + quantity, type: 'ESTORNO', orderId: order.getId(), actor, note: reason }),
+            StockMovement.create({
+              productId,
+              before: stockBefore,
+              after: stockBefore + quantity,
+              type: 'ESTORNO',
+              orderId: order.getId(),
+              actor,
+              note: reason,
+            }),
           );
         }
         await this.auditLogRepository.create(
-          AuditLog.create('PEDIDO_CANCELADO', actor, `${tableLabel}: pedido das ${order.getCreatedAt().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}${reason ? ` — ${reason}` : ''}`),
+          AuditLog.create(
+            'PEDIDO_CANCELADO',
+            actor,
+            `${tableLabel}: pedido das ${order.getCreatedAt().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}${reason ? ` — ${reason}` : ''}`,
+          ),
         );
         return;
       }
 
       await this.auditLogRepository.create(
-        AuditLog.create('STATUS_ALTERADO', actor, `${tableLabel}: ${ORDER_STATUS_LABEL[before]} → ${ORDER_STATUS_LABEL[status]}`),
+        AuditLog.create(
+          'STATUS_ALTERADO',
+          actor,
+          `${tableLabel}: ${ORDER_STATUS_LABEL[before]} → ${ORDER_STATUS_LABEL[status]}`,
+        ),
       );
     });
 

@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { CreateUserUsecase } from 'src/usecases/user/create/create-user.usecase';
 import { ListUsersUsecase } from 'src/usecases/user/list/list-users.usecase';
 import { DeleteUserUsecase } from 'src/usecases/user/delete/delete-user.usecase';
@@ -53,7 +64,11 @@ export class UserController {
 
   @Patch(':id/active')
   @HttpCode(HttpStatus.OK)
-  setActive(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: SetUserActiveDto) {
+  setActive(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SetUserActiveDto,
+  ) {
     return this.setUserActiveUsecase.execute(id, body.active, user.userId, user.username);
   }
 }

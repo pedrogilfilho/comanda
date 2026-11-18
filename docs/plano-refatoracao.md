@@ -7,6 +7,7 @@ Ordem: **Parte 1 lógica → Parte 2 estrutura → Parte 3 estilo**, com build/l
 ## Parte 1: lógica
 
 ### Backend
+
 - B1 `create-order`: transação (UnitOfWork) + decremento condicional de estoque + `EstoqueMovimentacao(VENDA)`.
 - B2 `close-table`: transação.
 - B3 `update-order-status`: máquina de estados (`PENDING→PREPARING|CANCELLED`, `PREPARING→READY|CANCELLED`, `READY→DELIVERED`); `CLOSED` só via fechamento; `CANCELLED` repõe estoque + `EstoqueMovimentacao(ESTORNO)`.
@@ -27,6 +28,7 @@ Ordem: **Parte 1 lógica → Parte 2 estrutura → Parte 3 estilo**, com build/l
 - `GET /auth/me`.
 
 ### Frontend
+
 - F1 `useSession` com `GET /auth/me`; shell com skeleton.
 - F2 carrinho: vazio = mínimo; `key` única.
 - F3 pedido mostra só subtotal (taxa entra na conta).
@@ -40,6 +42,7 @@ Ordem: **Parte 1 lógica → Parte 2 estrutura → Parte 3 estilo**, com build/l
 - F14 aviso de cozinha condicional ao perfil.
 
 ## Parte 2: estrutura
+
 - `apps/backend`, `apps/frontend`, `packages/shared` (tipos, enums, constantes, pricing, status).
 - Frontend: `app/(public)`, `app/(app)/{mesas,cozinha,contas,relatorios,admin/*,seguranca}`, `components/{ui,layout,features}`, `hooks`, `services`, `lib`, `types`, `constants`, `config`, `styles`.
 - ESLint + Prettier na raiz (`singleQuote`, `semi: true`, `trailingComma: all`, `printWidth: 110`, `import/order`).
@@ -47,6 +50,7 @@ Ordem: **Parte 1 lógica → Parte 2 estrutura → Parte 3 estilo**, com build/l
 - `tsconfig strict: true` no backend.
 
 ## Parte 3: estilo
+
 - Tokens em `globals.css`: bg `#faf6ef`, surface `#fff9f2`, surface-2 `#f3ece2`, bg-dark/ink `#2a1f14`, ink-muted `#6b5a4a`, hairline `rgba(42,31,20,.14)`, accent `#c45c2a` (único preenchido), success `#3d5c3a`, warning `#9a5f14`, danger `#b03a2e`; display Georgia, texto system sans; escala 28/22/18/16/14/13, nada abaixo de 13; espaço 4…48; raio 8/12/16.
 - `ui/`: Button (primary/secondary/ghost, 44px), IconButton, Input, Select, Field, Dialog/Sheet, ConfirmDialog, Badge, Card, StatTile, Tabs, Skeleton, EmptyState, SearchInput, DateRangeFilter, BarList, Icon (lucide-react).
 - Texto: caixa de frase, botões verbo+objeto, sem exclamação, sem travessão como tique, sem emoji.

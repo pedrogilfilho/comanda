@@ -9,6 +9,13 @@ import { UserController } from './user.controller';
 
 @Module({
   controllers: [UserController],
-  providers: [CreateUserUsecase, ListUsersUsecase, DeleteUserUsecase, ResetPasswordUsecase, SetUserActiveUsecase, ResetTwoFactorUserUsecase],
+  providers: [
+    CreateUserUsecase,
+    ListUsersUsecase,
+    DeleteUserUsecase,
+    ResetPasswordUsecase,
+    SetUserActiveUsecase,
+    ResetTwoFactorUserUsecase,
+  ],
 })
 export class UserModule {}

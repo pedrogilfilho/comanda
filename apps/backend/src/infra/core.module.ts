@@ -34,7 +34,10 @@ const services = [
   HashingService,
   AuthSessionService,
   { provide: JwtService, useFactory: () => new JwtService(env().JWT_SECRET) },
-  { provide: TwoFactorService, useFactory: () => new TwoFactorService(env().TWO_FACTOR_KEY ?? env().JWT_SECRET) },
+  {
+    provide: TwoFactorService,
+    useFactory: () => new TwoFactorService(env().TWO_FACTOR_KEY ?? env().JWT_SECRET),
+  },
 ];
 
 // Repositórios (ligados às interfaces do domínio) e serviços de infra, disponíveis para todo módulo
@@ -42,6 +45,12 @@ const services = [
 @Module({
   imports: [PrismaModule],
   providers: [...repositories, ...services],
-  exports: [...repositories.map((r) => r.provide), HashingService, AuthSessionService, JwtService, TwoFactorService],
+  exports: [
+    ...repositories.map((r) => r.provide),
+    HashingService,
+    AuthSessionService,
+    JwtService,
+    TwoFactorService,
+  ],
 })
 export class CoreModule {}

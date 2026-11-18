@@ -29,11 +29,18 @@ export class EnableTwoFactorUsecase {
     if (!secret) throw new BadRequestException('Gere o QR Code antes de confirmar');
 
     const locked = this.twoFactorService.minutesLocked(userId);
-    if (locked > 0) throw AppError.badRequest('TWO_FACTOR_LOCKED', `Muitas tentativas erradas. Tente de novo em ${locked} min.`);
+    if (locked > 0)
+      throw AppError.badRequest(
+        'TWO_FACTOR_LOCKED',
+        `Muitas tentativas erradas. Tente de novo em ${locked} min.`,
+      );
 
     if (!this.twoFactorService.verifyCode(this.twoFactorService.decrypt(secret), code)) {
       this.twoFactorService.registerFailure(userId);
-      throw AppError.badRequest('TWO_FACTOR_INVALID', 'Código inválido. Confira se o horário do celular está certo e digite o código atual do app.');
+      throw AppError.badRequest(
+        'TWO_FACTOR_INVALID',
+        'Código inválido. Confira se o horário do celular está certo e digite o código atual do app.',
+      );
     }
     this.twoFactorService.clearFailures(userId);
 
@@ -42,7 +49,11 @@ export class EnableTwoFactorUsecase {
     await this.userRepository.update(user);
 
     await this.auditLogRepository.create(
-      AuditLog.create('DOIS_FATORES_ATIVADO', user.getUsername(), `${user.getName()} (${user.getUsername()})`),
+      AuditLog.create(
+        'DOIS_FATORES_ATIVADO',
+        user.getUsername(),
+        `${user.getName()} (${user.getUsername()})`,
+      ),
     );
 
     return {

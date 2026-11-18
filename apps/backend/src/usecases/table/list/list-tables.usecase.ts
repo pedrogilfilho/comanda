@@ -25,7 +25,10 @@ export class ListTablesUsecase {
   ) {}
 
   async execute(): Promise<TableListItem[]> {
-    const [tables, activeOrders] = await Promise.all([this.tableRepository.findAll(), this.orderRepository.findAllActive()]);
+    const [tables, activeOrders] = await Promise.all([
+      this.tableRepository.findAll(),
+      this.orderRepository.findAllActive(),
+    ]);
 
     return tables.map((t) => {
       const orders = activeOrders.filter((o) => o.getTableId() === t.getId());

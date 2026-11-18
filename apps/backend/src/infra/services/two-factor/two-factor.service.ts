@@ -43,9 +43,17 @@ export class TwoFactorService {
   }
 
   // Confere o código digitado: do app (6 dígitos) ou de recuperação (XXXX-XXXX)
-  matchCode(encryptedSecret: string | null, recoveryHashes: string[], code: string): 'APP' | 'RECOVERY' | null {
+  matchCode(
+    encryptedSecret: string | null,
+    recoveryHashes: string[],
+    code: string,
+  ): 'APP' | 'RECOVERY' | null {
     if (encryptedSecret && this.verifyCode(this.decrypt(encryptedSecret), code)) return 'APP';
-    if (this.normalizeRecovery(code).length === RECOVERY_CODE_LENGTH && recoveryHashes.includes(this.hashRecoveryCode(code))) return 'RECOVERY';
+    if (
+      this.normalizeRecovery(code).length === RECOVERY_CODE_LENGTH &&
+      recoveryHashes.includes(this.hashRecoveryCode(code))
+    )
+      return 'RECOVERY';
     return null;
   }
 

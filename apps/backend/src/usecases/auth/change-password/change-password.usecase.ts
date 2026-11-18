@@ -14,7 +14,11 @@ export class ChangePasswordUsecase {
     private readonly hashingService: HashingService,
   ) {}
 
-  async execute(userId: string, newPassword: string, currentPassword?: string): Promise<{ success: boolean }> {
+  async execute(
+    userId: string,
+    newPassword: string,
+    currentPassword?: string,
+  ): Promise<{ success: boolean }> {
     const problem = passwordProblem(newPassword);
     if (problem) throw AppError.badRequest('VALIDATION', problem);
 
@@ -23,7 +27,9 @@ export class ChangePasswordUsecase {
 
     // Fora do primeiro acesso, trocar a senha exige saber a atual (um token roubado não tranca o dono)
     if (!user.getNeedsPasswordChange()) {
-      const ok = currentPassword ? await this.hashingService.compare(currentPassword, user.getPassword()) : false;
+      const ok = currentPassword
+        ? await this.hashingService.compare(currentPassword, user.getPassword())
+        : false;
       if (!ok) throw AppError.badRequest('VALIDATION', 'Senha atual incorreta');
     }
     if (await this.hashingService.compare(newPassword, user.getPassword())) {

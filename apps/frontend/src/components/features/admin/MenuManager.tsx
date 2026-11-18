@@ -1,41 +1,61 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { DEFAULT_MIN_GRAMS } from '@comanda/shared'
-import Dialog from '@/components/ui/Dialog'
-import { errorMessage } from '@/services/http'
-import { createProduct, removeProduct } from '@/services/products'
-import type { Product, ProductCategory } from '@/types/api'
-import { money, weight, toCents, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format'
-import ConfirmModal from '@/components/ui/ConfirmModal'
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { DEFAULT_MIN_GRAMS } from '@comanda/shared';
+import Dialog from '@/components/ui/Dialog';
+import { errorMessage } from '@/services/http';
+import { createProduct, removeProduct } from '@/services/products';
+import type { Product, ProductCategory } from '@/types/api';
+import { money, weight, toCents, CATEGORY_LABEL, CATEGORY_ORDER } from '@/lib/format';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface MenuManagerProps {
-  products: Product[]
-  loading: boolean
-  onChange: () => void
+  products: Product[];
+  loading: boolean;
+  onChange: () => void;
 }
 
 export default function MenuManager({ products, loading, onChange }: MenuManagerProps) {
-  const empty = { name: '', category: 'CARNE' as ProductCategory, description: '', price: '', minGrams: String(DEFAULT_MIN_GRAMS), stock: '' }
-  const [form, setForm] = useState(empty)
-  const [showCreate, setShowCreate] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [toRemove, setToRemove] = useState<Product | null>(null)
-  const [removing, setRemoving] = useState(false)
+  const empty = {
+    name: '',
+    category: 'CARNE' as ProductCategory,
+    description: '',
+    price: '',
+    minGrams: String(DEFAULT_MIN_GRAMS),
+    stock: '',
+  };
+  const [form, setForm] = useState(empty);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toRemove, setToRemove] = useState<Product | null>(null);
+  const [removing, setRemoving] = useState(false);
 
-  const isMeat = form.category === 'CARNE'
+  const isMeat = form.category === 'CARNE';
 
   const handleCreate = async () => {
-    const cents = toCents(form.price)
-    if (!form.name.trim()) { toast.error('Informe o nome do item'); return }
-    if (!Number.isFinite(cents) || cents <= 0) { toast.error(isMeat ? 'Informe o preço por kg' : 'Informe o preço'); return }
-    const minGrams = parseInt(form.minGrams, 10)
-    if (isMeat && (!Number.isFinite(minGrams) || minGrams <= 0)) { toast.error('Informe o pedido mínimo em gramas'); return }
-    const stockNumber = parseFloat((form.stock || '0').replace(',', '.'))
-    const stock = Number.isFinite(stockNumber) ? (isMeat ? Math.round(stockNumber * 1000) : Math.round(stockNumber)) : 0
+    const cents = toCents(form.price);
+    if (!form.name.trim()) {
+      toast.error('Informe o nome do item');
+      return;
+    }
+    if (!Number.isFinite(cents) || cents <= 0) {
+      toast.error(isMeat ? 'Informe o preço por kg' : 'Informe o preço');
+      return;
+    }
+    const minGrams = parseInt(form.minGrams, 10);
+    if (isMeat && (!Number.isFinite(minGrams) || minGrams <= 0)) {
+      toast.error('Informe o pedido mínimo em gramas');
+      return;
+    }
+    const stockNumber = parseFloat((form.stock || '0').replace(',', '.'));
+    const stock = Number.isFinite(stockNumber)
+      ? isMeat
+        ? Math.round(stockNumber * 1000)
+        : Math.round(stockNumber)
+      : 0;
 
-    setSaving(true)
+    setSaving(true);
     try {
       await createProduct({
         name: form.name.trim(),
@@ -43,63 +63,116 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
         category: form.category,
         ...(isMeat ? { pricePerKg: cents, minGrams } : { price: cents }),
         stock,
-      })
-      toast.success(`${form.name.trim()} adicionado ao cardápio`)
-      setForm(empty)
-      setShowCreate(false)
-      onChange()
+      });
+      toast.success(`${form.name.trim()} adicionado ao cardápio`);
+      setForm(empty);
+      setShowCreate(false);
+      onChange();
     } catch (e) {
-      toast.error(errorMessage(e, 'Erro ao adicionar item'))
+      toast.error(errorMessage(e, 'Erro ao adicionar item'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const confirmRemove = async () => {
-    if (!toRemove) return
-    setRemoving(true)
+    if (!toRemove) return;
+    setRemoving(true);
     try {
-      await removeProduct(toRemove.id)
-      toast.success(`${toRemove.name} removido do cardápio`)
-      setToRemove(null)
-      onChange()
+      await removeProduct(toRemove.id);
+      toast.success(`${toRemove.name} removido do cardápio`);
+      setToRemove(null);
+      onChange();
     } catch (e) {
-      toast.error(errorMessage(e, 'Erro ao remover item'))
+      toast.error(errorMessage(e, 'Erro ao remover item'));
     } finally {
-      setRemoving(false)
+      setRemoving(false);
     }
-  }
+  };
 
-  const grouped: Record<string, Product[]> = {}
-  products.forEach((p) => { (grouped[p.category] = grouped[p.category] || []).push(p) })
+  const grouped: Record<string, Product[]> = {};
+  products.forEach((p) => {
+    (grouped[p.category] = grouped[p.category] || []).push(p);
+  });
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>Cardápio</h1>
-        <button onClick={() => setShowCreate(true)} className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold" style={{ background: '#3d5c3a', color: '#faf6ef' }}>+ Adicionar Item</button>
+        <h1 className="text-xl sm:text-2xl font-bold text-[#2a1f14]" style={{ fontFamily: 'Georgia, serif' }}>
+          Cardápio
+        </h1>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-semibold"
+          style={{ background: '#3d5c3a', color: '#faf6ef' }}
+        >
+          + Adicionar Item
+        </button>
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[1, 2, 3, 4].map((i) => <div key={i} className="rounded-2xl animate-pulse" style={{ background: '#f5f0eb', height: '64px' }} />)}</div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl animate-pulse"
+              style={{ background: '#f5f0eb', height: '64px' }}
+            />
+          ))}
+        </div>
       ) : (
         <div className="space-y-6">
           {CATEGORY_ORDER.filter((c) => grouped[c]?.length).map((cat) => (
             <div key={cat}>
-              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#c45c2a' }}>{CATEGORY_LABEL[cat]}</p>
+              <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#c45c2a' }}>
+                {CATEGORY_LABEL[cat]}
+              </p>
               <div className="space-y-2">
                 {grouped[cat].map((p) => (
-                  <div key={p.id} className="rounded-2xl p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2" style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}>
+                  <div
+                    key={p.id}
+                    className="rounded-2xl p-3 sm:p-4 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2"
+                    style={{ background: '#fff9f2', border: '1px solid #d9cfc2' }}
+                  >
                     <div className="flex-1 min-w-0 basis-full sm:basis-auto">
                       <p className="font-semibold text-[#2a1f14] flex flex-wrap items-center gap-2">
                         {p.name}
-                        {p.isMeat && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(196,92,42,0.12)', color: '#c45c2a' }}>por grama · mín. {p.minGrams ?? 300} g</span>}
-                        {p.lowStock && <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}>⚠ Estoque baixo ({p.isMeat ? weight(p.stock) : p.stock})</span>}
+                        {p.isMeat && (
+                          <span
+                            className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: 'rgba(196,92,42,0.12)', color: '#c45c2a' }}
+                          >
+                            por grama · mín. {p.minGrams ?? 300} g
+                          </span>
+                        )}
+                        {p.lowStock && (
+                          <span
+                            className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
+                          >
+                            ⚠ Estoque baixo ({p.isMeat ? weight(p.stock) : p.stock})
+                          </span>
+                        )}
                       </p>
-                      {p.description && <p className="text-xs mt-0.5" style={{ color: '#8a7060' }}>{p.description}</p>}
+                      {p.description && (
+                        <p className="text-xs mt-0.5" style={{ color: '#8a7060' }}>
+                          {p.description}
+                        </p>
+                      )}
                     </div>
-                    <span className="font-bold whitespace-nowrap mr-auto sm:mr-0" style={{ color: '#c45c2a' }}>{p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}</span>
-                    <button onClick={() => setToRemove(p)} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}>Remover</button>
+                    <span
+                      className="font-bold whitespace-nowrap mr-auto sm:mr-0"
+                      style={{ color: '#c45c2a' }}
+                    >
+                      {p.isMeat ? `${money(p.pricePerKg ?? 0)}/kg` : money(p.price)}
+                    </span>
+                    <button
+                      onClick={() => setToRemove(p)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ background: 'rgba(217,83,79,0.12)', color: '#d9534f' }}
+                    >
+                      Remover
+                    </button>
                   </div>
                 ))}
               </div>
@@ -113,7 +186,12 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Categoria *</label>
-              <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as ProductCategory }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }}>
+              <select
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as ProductCategory }))}
+                className="w-full px-3 py-2 border rounded-lg"
+                style={{ borderColor: '#d9cfc2' }}
+              >
                 <option value="CARNE">Carne (vendida por grama)</option>
                 <option value="ACOMPANHAMENTO">Acompanhamento</option>
                 <option value="CALDO">Caldo</option>
@@ -123,31 +201,83 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
             </div>
             <div>
               <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Nome *</label>
-              <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }} placeholder={isMeat ? 'Ex: Linguiça' : 'Ex: Mandioca Frita'} />
+              <input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg"
+                style={{ borderColor: '#d9cfc2' }}
+                placeholder={isMeat ? 'Ex: Linguiça' : 'Ex: Mandioca Frita'}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Descrição</label>
-              <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }} placeholder="Ex: Crocante por fora, macia por dentro." />
+              <input
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg"
+                style={{ borderColor: '#d9cfc2' }}
+                placeholder="Ex: Crocante por fora, macia por dentro."
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-[#7a6650] mb-1.5">{isMeat ? 'Preço por kg (R$) *' : 'Preço (R$) *'}</label>
-                <input inputMode="decimal" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }} placeholder={isMeat ? '178,00' : '22,00'} />
+                <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
+                  {isMeat ? 'Preço por kg (R$) *' : 'Preço (R$) *'}
+                </label>
+                <input
+                  inputMode="decimal"
+                  value={form.price}
+                  onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  style={{ borderColor: '#d9cfc2' }}
+                  placeholder={isMeat ? '178,00' : '22,00'}
+                />
               </div>
               {isMeat ? (
                 <div>
                   <label className="block text-sm font-medium text-[#7a6650] mb-1.5">Mínimo (g) *</label>
-                  <input inputMode="numeric" value={form.minGrams} onChange={(e) => setForm((f) => ({ ...f, minGrams: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }} />
+                  <input
+                    inputMode="numeric"
+                    value={form.minGrams}
+                    onChange={(e) => setForm((f) => ({ ...f, minGrams: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    style={{ borderColor: '#d9cfc2' }}
+                  />
                 </div>
-              ) : <div />}
+              ) : (
+                <div />
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">{isMeat ? 'Estoque inicial (kg)' : 'Estoque inicial (unidades)'}</label>
-              <input inputMode="decimal" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" style={{ borderColor: '#d9cfc2' }} placeholder="0" />
+              <label className="block text-sm font-medium text-[#7a6650] mb-1.5">
+                {isMeat ? 'Estoque inicial (kg)' : 'Estoque inicial (unidades)'}
+              </label>
+              <input
+                inputMode="decimal"
+                value={form.stock}
+                onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg"
+                style={{ borderColor: '#d9cfc2' }}
+                placeholder="0"
+              />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowCreate(false)} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold" style={{ background: '#f0ebe4', color: '#6b5a4a' }}>Voltar</button>
-              <button onClick={handleCreate} disabled={saving} className="flex-1 py-2 rounded-lg font-semibold text-white" style={{ background: '#3d5c3a', opacity: saving ? 0.6 : 1 }}>{saving ? 'Salvando…' : 'Adicionar'}</button>
+              <button
+                onClick={() => setShowCreate(false)}
+                disabled={saving}
+                className="flex-1 py-2 rounded-lg font-semibold"
+                style={{ background: '#f0ebe4', color: '#6b5a4a' }}
+              >
+                Voltar
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={saving}
+                className="flex-1 py-2 rounded-lg font-semibold text-white"
+                style={{ background: '#3d5c3a', opacity: saving ? 0.6 : 1 }}
+              >
+                {saving ? 'Salvando…' : 'Adicionar'}
+              </button>
             </div>
           </div>
         </Dialog>
@@ -156,7 +286,12 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
       {toRemove && (
         <ConfirmModal
           title="Remover Item"
-          message={<>Remover <strong>{toRemove.name}</strong> do cardápio? Ele deixa de aparecer para os garçons. Pedidos antigos continuam no histórico.</>}
+          message={
+            <>
+              Remover <strong>{toRemove.name}</strong> do cardápio? Ele deixa de aparecer para os garçons.
+              Pedidos antigos continuam no histórico.
+            </>
+          }
           confirmLabel="Remover"
           tone="danger"
           loading={removing}
@@ -165,5 +300,5 @@ export default function MenuManager({ products, loading, onChange }: MenuManager
         />
       )}
     </div>
-  )
+  );
 }

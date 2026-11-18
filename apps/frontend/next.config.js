@@ -10,12 +10,12 @@ const nextConfig = {
     return [
       { source: '/dashboard', destination: '/', permanent: false },
       { source: '/admin', destination: '/admin/usuarios', permanent: false },
-    ]
+    ];
   },
   async rewrites() {
-    const target = process.env.API_PROXY_TARGET || 'https://comandaplus.duckdns.org'
-    return [{ source: '/api/:path*', destination: `${target}/api/:path*` }]
+    const target = process.env.API_PROXY_TARGET || 'https://comandaplus.duckdns.org';
+    return [{ source: '/api/:path*', destination: `${target}/api/:path*` }];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

@@ -24,7 +24,9 @@ export class ListKitchenOrdersUsecase {
   async execute(): Promise<KitchenOrderView[]> {
     const orders = await this.orderRepository.findForKitchen();
     const [products, tables] = await Promise.all([
-      this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]),
+      this.productRepository.findByIds([
+        ...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId()))),
+      ]),
       this.tableRepository.findAll(),
     ]);
     const productById = new Map(products.map((p) => [p.getId(), p]));

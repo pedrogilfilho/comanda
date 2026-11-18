@@ -38,7 +38,9 @@ export class ListOrdersByTableUsecase {
 
   async execute(tableId: string): Promise<TableAccountView> {
     const orders = await this.orderRepository.findActiveByTableId(tableId);
-    const products = await this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]);
+    const products = await this.productRepository.findByIds([
+      ...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId()))),
+    ]);
     const productById = new Map(products.map((p) => [p.getId(), p]));
 
     const orderViews: OrderView[] = orders.map((o) => ({

@@ -1,5 +1,16 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { ORDER_NOTE_MAX_LENGTH, type OrderStatus } from '@comanda/shared';
 
 export class OrderItemDto {
@@ -10,7 +21,11 @@ export class OrderItemDto {
 
 export class CreateOrderDto {
   @IsUUID() tableId!: string;
-  @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => OrderItemDto) items!: OrderItemDto[];
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  items!: OrderItemDto[];
 }
 
 // A cozinha avança o pedido; cancelar é PATCH com status CANCELLED e passa pelo RolesGuard do controller

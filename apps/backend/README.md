@@ -30,4 +30,3 @@ Acesso: http://localhost:3001
 ## 📝 Licença
 
 MIT - veja LICENSE no root
-

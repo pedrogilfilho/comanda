@@ -7,6 +7,11 @@ import { OrderController } from './order.controller';
 
 @Module({
   controllers: [OrderController],
-  providers: [CreateOrderUsecase, ListOrdersByTableUsecase, ListKitchenOrdersUsecase, UpdateOrderStatusUsecase],
+  providers: [
+    CreateOrderUsecase,
+    ListOrdersByTableUsecase,
+    ListKitchenOrdersUsecase,
+    UpdateOrderStatusUsecase,
+  ],
 })
 export class OrderModule {}

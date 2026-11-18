@@ -28,9 +28,19 @@ export class AuditLog {
     return new AuditLog(dto.id, dto.action, dto.actor, dto.details, dto.createdAt);
   }
 
-  getId(): string { return this.id; }
-  getAction(): AuditAction { return this.action; }
-  getActor(): string { return this.actor; }
-  getDetails(): string { return this.details; }
-  getCreatedAt(): Date { return this.createdAt; }
+  getId(): string {
+    return this.id;
+  }
+  getAction(): AuditAction {
+    return this.action;
+  }
+  getActor(): string {
+    return this.actor;
+  }
+  getDetails(): string {
+    return this.details;
+  }
+  getCreatedAt(): Date {
+    return this.createdAt;
+  }
 }

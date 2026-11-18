@@ -33,7 +33,10 @@ export class CreateOrderUsecase {
 
   // Observação do item (ex: "com gelo e limão"): texto livre, limitado
   private static cleanNotes(notes?: string | null): string | null {
-    const text = String(notes ?? '').replace(/\s+/g, ' ').trim().slice(0, ORDER_NOTE_MAX_LENGTH);
+    const text = String(notes ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, ORDER_NOTE_MAX_LENGTH);
     return text || null;
   }
 
@@ -45,7 +48,8 @@ export class CreateOrderUsecase {
     // 1. Mesa precisa estar aberta
     const table = await this.tableRepository.findById(input.tableId);
     if (!table) throw AppError.notFound('Mesa não encontrada');
-    if (!table.isOpen()) throw AppError.badRequest('TABLE_NOT_OPEN', 'A mesa precisa estar aberta para lançar pedidos');
+    if (!table.isOpen())
+      throw AppError.badRequest('TABLE_NOT_OPEN', 'A mesa precisa estar aberta para lançar pedidos');
 
     // 2. Validar itens e somar a quantidade pedida por produto
     const products = new Map<string, Product>();
@@ -61,7 +65,10 @@ export class CreateOrderUsecase {
         throw AppError.badRequest('VALIDATION', `Quantidade inválida para ${product.getName()}`);
       }
       if (quantity < product.getMinOrderQuantity()) {
-        throw AppError.badRequest('VALIDATION', `${product.getName()}: o pedido mínimo é de ${product.getMinOrderQuantity()}g`);
+        throw AppError.badRequest(
+          'VALIDATION',
+          `${product.getName()}: o pedido mínimo é de ${product.getMinOrderQuantity()}g`,
+        );
       }
       requested.set(product.getId(), (requested.get(product.getId()) ?? 0) + quantity);
     }
@@ -94,11 +101,22 @@ export class CreateOrderUsecase {
           );
         }
         await this.stockMovementRepository.create(
-          StockMovement.create({ productId, before, after: before - quantity, type: 'VENDA', orderId: order.getId(), actor }),
+          StockMovement.create({
+            productId,
+            before,
+            after: before - quantity,
+            type: 'VENDA',
+            orderId: order.getId(),
+            actor,
+          }),
         );
       }
       await this.auditLogRepository.create(
-        AuditLog.create('PEDIDO_LANCADO', actor, `Mesa ${table.getIdentifier()} — ${this.summary(orderItems, products)}`),
+        AuditLog.create(
+          'PEDIDO_LANCADO',
+          actor,
+          `Mesa ${table.getIdentifier()} — ${this.summary(orderItems, products)}`,
+        ),
       );
     });
 
@@ -109,7 +127,9 @@ export class CreateOrderUsecase {
     return items
       .map((i) => {
         const p = products.get(i.getProductId())!;
-        const base = p.getIsMeat() ? `${p.getName()} ${i.getQuantity()}g` : `${p.getName()} x${i.getQuantity()}`;
+        const base = p.getIsMeat()
+          ? `${p.getName()} ${i.getQuantity()}g`
+          : `${p.getName()} x${i.getQuantity()}`;
         return i.getNotes() ? `${base} (${i.getNotes()})` : base;
       })
       .join(', ');

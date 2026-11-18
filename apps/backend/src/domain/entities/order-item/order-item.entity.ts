@@ -29,19 +29,38 @@ export class OrderItem {
   ) {}
 
   static create(dto: OrderItemCreateDto): OrderItem {
-    return new OrderItem(Utils.generateUUID(), dto.productId, dto.quantity, dto.unitPrice, dto.weighed, dto.notes ?? null);
+    return new OrderItem(
+      Utils.generateUUID(),
+      dto.productId,
+      dto.quantity,
+      dto.unitPrice,
+      dto.weighed,
+      dto.notes ?? null,
+    );
   }
 
   static with(dto: OrderItemWithDto): OrderItem {
     return new OrderItem(dto.id, dto.productId, dto.quantity, dto.unitPrice, dto.weighed, dto.notes);
   }
 
-  getId(): string { return this.id; }
-  getProductId(): string { return this.productId; }
-  getQuantity(): number { return this.quantity; }
-  getUnitPrice(): number { return this.unitPrice; }
-  getWeighed(): boolean { return this.weighed; }
-  getNotes(): string | null { return this.notes; }
+  getId(): string {
+    return this.id;
+  }
+  getProductId(): string {
+    return this.productId;
+  }
+  getQuantity(): number {
+    return this.quantity;
+  }
+  getUnitPrice(): number {
+    return this.unitPrice;
+  }
+  getWeighed(): boolean {
+    return this.weighed;
+  }
+  getNotes(): string | null {
+    return this.notes;
+  }
 
   getSubtotal(): number {
     return itemSubtotal(this.quantity, this.unitPrice, this.weighed);

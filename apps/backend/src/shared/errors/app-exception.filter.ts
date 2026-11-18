@@ -12,26 +12,46 @@ export class AppExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const res = host.switchToHttp().getResponse<Response>();
     const body = this.toBody(exception);
-    if (body.statusCode >= 500) this.logger.error(exception instanceof Error ? exception.stack : String(exception));
+    if (body.statusCode >= 500)
+      this.logger.error(exception instanceof Error ? exception.stack : String(exception));
     res.status(body.statusCode).json(body);
   }
 
   private toBody(exception: unknown): ApiErrorBody {
     if (exception instanceof AppError) {
-      return { statusCode: exception.getStatus(), code: exception.code, message: exception.message, details: exception.details };
+      return {
+        statusCode: exception.getStatus(),
+        code: exception.code,
+        message: exception.message,
+        details: exception.details,
+      };
     }
     if (exception instanceof ThrottlerException) {
-      return { statusCode: HttpStatus.TOO_MANY_REQUESTS, code: 'RATE_LIMITED', message: 'Muitas tentativas. Aguarde um minuto.' };
+      return {
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        code: 'RATE_LIMITED',
+        message: 'Muitas tentativas. Aguarde um minuto.',
+      };
     }
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const raw = exception.getResponse();
       // ValidationPipe devolve { message: string[] }
-      const messages = typeof raw === 'object' && raw && 'message' in raw ? (raw as { message: unknown }).message : raw;
+      const messages =
+        typeof raw === 'object' && raw && 'message' in raw ? (raw as { message: unknown }).message : raw;
       const message = Array.isArray(messages) ? messages.join('; ') : String(messages ?? exception.message);
-      return { statusCode: status, code: this.codeFor(status), message, details: Array.isArray(messages) ? messages : undefined };
+      return {
+        statusCode: status,
+        code: this.codeFor(status),
+        message,
+        details: Array.isArray(messages) ? messages : undefined,
+      };
     }
-    return { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, code: 'INTERNAL', message: 'Erro interno. Tente de novo.' };
+    return {
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      code: 'INTERNAL',
+      message: 'Erro interno. Tente de novo.',
+    };
   }
 
   private codeFor(status: number): ApiErrorCode {

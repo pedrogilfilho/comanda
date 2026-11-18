@@ -10,7 +10,12 @@ export class SetUserActiveUsecase {
     private readonly auditLogRepository: AuditLogRepository,
   ) {}
 
-  async execute(id: string, active: boolean, requesterId: string, actor: string): Promise<{ success: boolean }> {
+  async execute(
+    id: string,
+    active: boolean,
+    requesterId: string,
+    actor: string,
+  ): Promise<{ success: boolean }> {
     const user = await this.userRepository.findById(id);
     if (!user) throw new NotFoundException('Usuário não encontrado');
     if (id === requesterId && !active) {
@@ -21,7 +26,11 @@ export class SetUserActiveUsecase {
     await this.userRepository.update(user);
 
     await this.auditLogRepository.create(
-      AuditLog.create(active ? 'USUARIO_ATIVADO' : 'USUARIO_DESATIVADO', actor, `${user.getName()} (${user.getUsername()})`),
+      AuditLog.create(
+        active ? 'USUARIO_ATIVADO' : 'USUARIO_DESATIVADO',
+        actor,
+        `${user.getName()} (${user.getUsername()})`,
+      ),
     );
     return { success: true };
   }

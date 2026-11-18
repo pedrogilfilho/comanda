@@ -77,7 +77,11 @@ export class AuthController {
   @UseGuards(AuthOrChallengeGuard)
   @Post('2fa/enable')
   @HttpCode(HttpStatus.OK)
-  enableTwoFactor(@CurrentUser() user: RequestUser, @Body() body: TwoFactorCodeDto, @Req() req: { duringLogin: boolean }) {
+  enableTwoFactor(
+    @CurrentUser() user: RequestUser,
+    @Body() body: TwoFactorCodeDto,
+    @Req() req: { duringLogin: boolean },
+  ) {
     return this.enableTwoFactorUsecase.execute(user.userId, body.code, req.duringLogin);
   }
 

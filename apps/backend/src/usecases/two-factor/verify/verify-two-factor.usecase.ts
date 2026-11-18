@@ -22,9 +22,13 @@ export class VerifyTwoFactorUsecase {
     try {
       challenge = this.jwtService.verifyChallenge(challengeToken);
     } catch {
-      throw AppError.unauthorized('CHALLENGE_EXPIRED', 'O tempo para digitar o código acabou. Entre com usuário e senha de novo.');
+      throw AppError.unauthorized(
+        'CHALLENGE_EXPIRED',
+        'O tempo para digitar o código acabou. Entre com usuário e senha de novo.',
+      );
     }
-    if (challenge.step !== 'verify') throw AppError.unauthorized('CHALLENGE_EXPIRED', 'Etapa de login inválida. Entre de novo.');
+    if (challenge.step !== 'verify')
+      throw AppError.unauthorized('CHALLENGE_EXPIRED', 'Etapa de login inválida. Entre de novo.');
 
     const user = await this.userRepository.findById(challenge.userId);
     if (!user || !user.getActive() || !user.getTwoFactorEnabled()) {
@@ -32,9 +36,17 @@ export class VerifyTwoFactorUsecase {
     }
 
     const locked = this.twoFactorService.minutesLocked(user.getId());
-    if (locked > 0) throw AppError.badRequest('TWO_FACTOR_LOCKED', `Muitas tentativas erradas. Tente de novo em ${locked} min.`);
+    if (locked > 0)
+      throw AppError.badRequest(
+        'TWO_FACTOR_LOCKED',
+        `Muitas tentativas erradas. Tente de novo em ${locked} min.`,
+      );
 
-    const match = this.twoFactorService.matchCode(user.getTwoFactorSecret(), user.getTwoFactorRecoveryCodes(), code);
+    const match = this.twoFactorService.matchCode(
+      user.getTwoFactorSecret(),
+      user.getTwoFactorRecoveryCodes(),
+      code,
+    );
     if (!match) {
       this.twoFactorService.registerFailure(user.getId());
       throw AppError.badRequest('TWO_FACTOR_INVALID', 'Código inválido');
@@ -45,7 +57,10 @@ export class VerifyTwoFactorUsecase {
     if (match === 'RECOVERY') {
       user.consumeRecoveryCode(this.twoFactorService.hashRecoveryCode(code));
       await this.userRepository.update(user);
-      return { ...this.authSessionService.issue(user), recoveryCodesLeft: user.getTwoFactorRecoveryCodes().length };
+      return {
+        ...this.authSessionService.issue(user),
+        recoveryCodesLeft: user.getTwoFactorRecoveryCodes().length,
+      };
     }
     return this.authSessionService.issue(user);
   }

@@ -41,10 +41,16 @@ export class LoginUsecase {
 
     // 4. Verificação em 2 etapas: a sessão só é liberada depois do código
     if (user.getTwoFactorEnabled()) {
-      return { status: 'TWO_FACTOR_REQUIRED', challengeToken: this.jwtService.signChallenge({ userId: user.getId(), step: 'verify' }) };
+      return {
+        status: 'TWO_FACTOR_REQUIRED',
+        challengeToken: this.jwtService.signChallenge({ userId: user.getId(), step: 'verify' }),
+      };
     }
     if (user.isTwoFactorRequired()) {
-      return { status: 'TWO_FACTOR_SETUP_REQUIRED', challengeToken: this.jwtService.signChallenge({ userId: user.getId(), step: 'setup' }) };
+      return {
+        status: 'TWO_FACTOR_SETUP_REQUIRED',
+        challengeToken: this.jwtService.signChallenge({ userId: user.getId(), step: 'setup' }),
+      };
     }
 
     // 5. Sem 2 etapas: gera os tokens direto (sem expor password)

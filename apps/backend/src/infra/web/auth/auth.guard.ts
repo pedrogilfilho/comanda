@@ -35,14 +35,20 @@ export class AuthGuard implements CanActivate {
 
     const user = await this.userRepository.findById(userId);
     if (!user) throw AppError.unauthorized('UNAUTHORIZED', 'Sessão inválida. Entre de novo.');
-    if (!user.getActive()) throw AppError.unauthorized('USER_INACTIVE', 'Usuário desativado. Procure o administrador.');
+    if (!user.getActive())
+      throw AppError.unauthorized('USER_INACTIVE', 'Usuário desativado. Procure o administrador.');
 
     const allowPending = this.reflector.getAllAndOverride<boolean>(ALLOW_PASSWORD_PENDING_KEY, targets);
     if (user.getNeedsPasswordChange() && !allowPending) {
       throw AppError.forbidden('Troque a senha antes de continuar.', 'PASSWORD_CHANGE_REQUIRED');
     }
 
-    request.user = { userId: user.getId(), username: user.getUsername(), name: user.getName(), role: user.getRole() };
+    request.user = {
+      userId: user.getId(),
+      username: user.getUsername(),
+      name: user.getName(),
+      role: user.getRole(),
+    };
     return true;
   }
 

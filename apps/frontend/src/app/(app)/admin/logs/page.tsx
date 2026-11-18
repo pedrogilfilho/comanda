@@ -1,5 +1,5 @@
-import LogsView from '@/components/features/admin/LogsView'
+import LogsView from '@/components/features/admin/LogsView';
 
 export default function LogsPage() {
-  return <LogsView />
+  return <LogsView />;
 }

@@ -1,5 +1,5 @@
-import KitchenQueue from '@/components/features/kitchen/KitchenQueue'
+import KitchenQueue from '@/components/features/kitchen/KitchenQueue';
 
 export default function CozinhaPage() {
-  return <KitchenQueue />
+  return <KitchenQueue />;
 }

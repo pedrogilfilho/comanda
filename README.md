@@ -4,10 +4,10 @@ Sistema de comandas do restaurante **Quintal do Roger**: abertura de mesas, lan�
 
 O projeto tem dois apps independentes:
 
-| Pasta | Stack | Porta local |
-|---|---|---|
-| `comanda-plus-backend-main/` | NestJS 10 · Prisma 5 · PostgreSQL · JWT · bcrypt · 2FA TOTP (otplib) | `3001` (prefixo `/api`) |
-| `comanda-plus-frontend-main/` | Next.js 14 (App Router) · React 18 · Tailwind · Sonner · jsPDF | `3000` |
+| Pasta                         | Stack                                                                | Porta local             |
+| ----------------------------- | -------------------------------------------------------------------- | ----------------------- |
+| `comanda-plus-backend-main/`  | NestJS 10 · Prisma 5 · PostgreSQL · JWT · bcrypt · 2FA TOTP (otplib) | `3001` (prefixo `/api`) |
+| `comanda-plus-frontend-main/` | Next.js 14 (App Router) · React 18 · Tailwind · Sonner · jsPDF       | `3000`                  |
 
 Produção: frontend na Vercel e backend em `https://comandaplus.duckdns.org`. O Next encaminha `/api/*` para o backend (rewrite em `next.config.js`).
 
@@ -28,11 +28,11 @@ npm run start:dev
 
 Usuários do seed (senha inicial `123`, troca obrigatória no 1º login):
 
-| Usuário | Perfil |
-|---|---|
-| `admin` | ADMIN |
+| Usuário   | Perfil  |
+| --------- | ------- |
+| `admin`   | ADMIN   |
 | `gerente` | GERENTE |
-| `carlos` | GARCOM |
+| `carlos`  | GARCOM  |
 | `cozinha` | COZINHA |
 
 ### Frontend
@@ -103,24 +103,24 @@ Clean Architecture: **controller → usecase → interface de repositório → i
 
 ### Rotas da API (`/api`)
 
-| Recurso | Endpoints | Acesso |
-|---|---|---|
-| `auth` | `login`, `change-password`, `2fa/{setup,enable,disable,verify,status}`, `health` | público / autenticado |
-| `tables` | `GET /`, `POST /open`, `POST /:id/close` | autenticado |
-| `orders` | `POST /`, `GET /kitchen`, `GET /table/:tableId`, `PATCH /:id/status` | autenticado |
-| `products` | `GET /`, `POST /`, `DELETE /:id`, `PATCH /:id/stock` | escrita só ADMIN |
-| `users` | CRUD, `reset-password`, `reset-two-factor`, `active`, `me` | só ADMIN |
-| `reports`, `closed-accounts` | — | ADMIN, GERENTE |
-| `logs` | — | ADMIN |
+| Recurso                      | Endpoints                                                                        | Acesso                |
+| ---------------------------- | -------------------------------------------------------------------------------- | --------------------- |
+| `auth`                       | `login`, `change-password`, `2fa/{setup,enable,disable,verify,status}`, `health` | público / autenticado |
+| `tables`                     | `GET /`, `POST /open`, `POST /:id/close`                                         | autenticado           |
+| `orders`                     | `POST /`, `GET /kitchen`, `GET /table/:tableId`, `PATCH /:id/status`             | autenticado           |
+| `products`                   | `GET /`, `POST /`, `DELETE /:id`, `PATCH /:id/stock`                             | escrita só ADMIN      |
+| `users`                      | CRUD, `reset-password`, `reset-two-factor`, `active`, `me`                       | só ADMIN              |
+| `reports`, `closed-accounts` | —                                                                                | ADMIN, GERENTE        |
+| `logs`                       | —                                                                                | ADMIN                 |
 
 ### Perfis no frontend
 
-| Perfil | O que vê no dashboard |
-|---|---|
-| ADMIN | Usuários, Cardápio, Estoque, Contas fechadas, Relatórios, Logs |
-| GERENTE | Mesas, Contas fechadas, Relatórios |
-| GARCOM | Mesas (abrir, lançar pedido, fechar conta) |
-| COZINHA | Fila de pedidos (mudar status) |
+| Perfil  | O que vê no dashboard                                          |
+| ------- | -------------------------------------------------------------- |
+| ADMIN   | Usuários, Cardápio, Estoque, Contas fechadas, Relatórios, Logs |
+| GERENTE | Mesas, Contas fechadas, Relatórios                             |
+| GARCOM  | Mesas (abrir, lançar pedido, fechar conta)                     |
+| COZINHA | Fila de pedidos (mudar status)                                 |
 
 ### Regras de negócio
 

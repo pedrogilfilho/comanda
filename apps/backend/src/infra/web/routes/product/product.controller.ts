@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ListProductsUsecase } from 'src/usecases/product/list/list-products.usecase';
 import { CreateProductUsecase } from 'src/usecases/product/create/create-product.usecase';
 import { RemoveProductUsecase } from 'src/usecases/product/remove/remove-product.usecase';
@@ -38,7 +49,17 @@ export class ProductController {
   @Roles('ADMIN')
   @Patch(':id/stock')
   @HttpCode(HttpStatus.OK)
-  adjustStock(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: AdjustStockDto) {
-    return this.adjustStockUsecase.execute({ productId: id, stock: body.stock, type: body.type, reason: body.reason, actor: user.username });
+  adjustStock(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AdjustStockDto,
+  ) {
+    return this.adjustStockUsecase.execute({
+      productId: id,
+      stock: body.stock,
+      type: body.type,
+      reason: body.reason,
+      actor: user.username,
+    });
   }
 }

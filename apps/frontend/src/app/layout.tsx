@@ -1,24 +1,20 @@
-import type { Metadata, Viewport } from 'next'
-import { Toaster } from 'sonner'
-import '@/styles/globals.css'
+import type { Metadata, Viewport } from 'next';
+import { Toaster } from 'sonner';
+import '@/styles/globals.css';
 
 export const metadata: Metadata = {
   title: 'Comanda+',
   description: 'Sistema de gestão de restaurante',
-}
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: '#2a1f14',
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body className="bg-[#faf6ef] text-[#2a1f14]">
@@ -26,5 +22,5 @@ export default function RootLayout({
         <Toaster />
       </body>
     </html>
-  )
+  );
 }

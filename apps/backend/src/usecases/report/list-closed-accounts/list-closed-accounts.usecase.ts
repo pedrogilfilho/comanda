@@ -3,7 +3,11 @@ import { ClosedAccountRepository } from 'src/domain/repositories/closed-account.
 import { OrderRepository } from 'src/domain/repositories/order.repository.interface';
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
 import { UserRepository } from 'src/domain/repositories/user.repository.interface';
-import { AccountPayment, PaymentSummary, summarizePayments } from 'src/domain/entities/closed-account/closed-account.entity';
+import {
+  AccountPayment,
+  PaymentSummary,
+  summarizePayments,
+} from 'src/domain/entities/closed-account/closed-account.entity';
 
 export interface ClosedAccountView {
   id: string;
@@ -22,7 +26,14 @@ export interface ClosedAccountView {
     createdAt: Date;
     waiter: string;
     subtotal: number;
-    items: { productName: string; isMeat: boolean; quantity: number; unitPrice: number; subtotal: number; notes: string | null }[];
+    items: {
+      productName: string;
+      isMeat: boolean;
+      quantity: number;
+      unitPrice: number;
+      subtotal: number;
+      notes: string | null;
+    }[];
   }[];
 }
 
@@ -44,7 +55,9 @@ export class ListClosedAccountsUsecase {
     const accounts = await this.closedAccountRepository.findBetween(from, to);
     const orders = await this.orderRepository.findByClosedAccountIds(accounts.map((a) => a.getId()));
     const [products, users] = await Promise.all([
-      this.productRepository.findByIds([...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId())))]),
+      this.productRepository.findByIds([
+        ...new Set(orders.flatMap((o) => o.getItems().map((i) => i.getProductId()))),
+      ]),
       this.userRepository.findByIds([...new Set(orders.map((o) => o.getUserId()))]),
     ]);
     const productById = new Map(products.map((p) => [p.getId(), p]));

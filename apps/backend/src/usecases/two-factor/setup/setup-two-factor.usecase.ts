@@ -15,7 +15,9 @@ export class SetupTwoFactorUsecase {
     const user = await this.userRepository.findById(userId);
     if (!user || !user.getActive()) throw new NotFoundException('Usuário não encontrado');
     if (user.getTwoFactorEnabled()) {
-      throw new BadRequestException('A verificação em 2 etapas já está ativa. Desative antes de configurar de novo.');
+      throw new BadRequestException(
+        'A verificação em 2 etapas já está ativa. Desative antes de configurar de novo.',
+      );
     }
 
     const secret = this.twoFactorService.generateSecret();

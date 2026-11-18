@@ -1,4 +1,9 @@
-import { TWO_FACTOR_REQUIRED_ROLES, USER_DELETE_GRACE_DAYS, USER_ROLES, type UserRole } from '@comanda/shared';
+import {
+  TWO_FACTOR_REQUIRED_ROLES,
+  USER_DELETE_GRACE_DAYS,
+  USER_ROLES,
+  type UserRole,
+} from '@comanda/shared';
 import { Utils } from 'src/shared/utils/utils';
 
 export { USER_DELETE_GRACE_DAYS, USER_ROLES };
@@ -86,15 +91,33 @@ export class User {
     );
   }
 
-  getId(): string { return this.id; }
-  getUsername(): string { return this.username; }
-  getName(): string { return this.name; }
-  getEmail(): string | null { return this.email; }
-  getPassword(): string { return this.password; }
-  getRole(): UserRole { return this.role; }
-  getNeedsPasswordChange(): boolean { return this.needsPasswordChange; }
-  getActive(): boolean { return this.active; }
-  getDeactivatedAt(): Date | null { return this.deactivatedAt; }
+  getId(): string {
+    return this.id;
+  }
+  getUsername(): string {
+    return this.username;
+  }
+  getName(): string {
+    return this.name;
+  }
+  getEmail(): string | null {
+    return this.email;
+  }
+  getPassword(): string {
+    return this.password;
+  }
+  getRole(): UserRole {
+    return this.role;
+  }
+  getNeedsPasswordChange(): boolean {
+    return this.needsPasswordChange;
+  }
+  getActive(): boolean {
+    return this.active;
+  }
+  getDeactivatedAt(): Date | null {
+    return this.deactivatedAt;
+  }
 
   // Data a partir da qual o usuário pode ser excluído (null = ativo, não pode excluir)
   getDeletableAt(): Date | null {
@@ -103,16 +126,26 @@ export class User {
     const since = this.deactivatedAt ?? this.updatedAt;
     return new Date(since.getTime() + USER_DELETE_GRACE_DAYS * 24 * 60 * 60 * 1000);
   }
-  getTwoFactorEnabled(): boolean { return this.twoFactorEnabled; }
-  getTwoFactorSecret(): string | null { return this.twoFactorSecret; }
-  getTwoFactorRecoveryCodes(): string[] { return [...this.twoFactorRecoveryCodes]; }
+  getTwoFactorEnabled(): boolean {
+    return this.twoFactorEnabled;
+  }
+  getTwoFactorSecret(): string | null {
+    return this.twoFactorSecret;
+  }
+  getTwoFactorRecoveryCodes(): string[] {
+    return [...this.twoFactorRecoveryCodes];
+  }
 
   // Admin e Gerente não podem ficar sem a verificação em 2 etapas
   isTwoFactorRequired(): boolean {
     return TWO_FACTOR_REQUIRED_ROLES.includes(this.role);
   }
-  getCreatedAt(): Date { return this.createdAt; }
-  getUpdatedAt(): Date { return this.updatedAt; }
+  getCreatedAt(): Date {
+    return this.createdAt;
+  }
+  getUpdatedAt(): Date {
+    return this.updatedAt;
+  }
 
   updateName(name: string): void {
     this.name = name;

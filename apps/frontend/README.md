@@ -44,4 +44,3 @@ Live: https://frontend-comanda.vercel.app
 ## 📝 Licença
 
 MIT - veja LICENSE no root
-

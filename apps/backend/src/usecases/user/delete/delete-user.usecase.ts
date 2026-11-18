@@ -21,17 +21,23 @@ export class DeleteUserUsecase {
     // Regra: só exclui quem está desativado há pelo menos 30 dias
     const deletableAt = user.getDeletableAt();
     if (!deletableAt) {
-      throw new BadRequestException(`Desative o usuário primeiro. A exclusão só é liberada ${USER_DELETE_GRACE_DAYS} dias depois da desativação.`);
+      throw new BadRequestException(
+        `Desative o usuário primeiro. A exclusão só é liberada ${USER_DELETE_GRACE_DAYS} dias depois da desativação.`,
+      );
     }
     if (deletableAt.getTime() > Date.now()) {
       const days = Math.ceil((deletableAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
       const date = deletableAt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-      throw new BadRequestException(`A exclusão só é liberada ${USER_DELETE_GRACE_DAYS} dias após a desativação. Faltam ${days} ${days === 1 ? 'dia' : 'dias'} (liberado em ${date}).`);
+      throw new BadRequestException(
+        `A exclusão só é liberada ${USER_DELETE_GRACE_DAYS} dias após a desativação. Faltam ${days} ${days === 1 ? 'dia' : 'dias'} (liberado em ${date}).`,
+      );
     }
 
     // Excluir apagaria os pedidos do usuário (e o histórico dos relatórios)
     if ((await this.orderRepository.countByUserId(id)) > 0) {
-      throw new BadRequestException('Este usuário já lançou pedidos. Desative-o em vez de excluir, para manter o histórico.');
+      throw new BadRequestException(
+        'Este usuário já lançou pedidos. Desative-o em vez de excluir, para manter o histórico.',
+      );
     }
 
     await this.userRepository.delete(id);

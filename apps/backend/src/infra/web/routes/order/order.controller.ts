@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { CreateOrderUsecase } from 'src/usecases/order/create/create-order.usecase';
 import { ListOrdersByTableUsecase } from 'src/usecases/order/list-by-table/list-orders-by-table.usecase';
 import { ListKitchenOrdersUsecase } from 'src/usecases/order/list-kitchen/list-kitchen-orders.usecase';
@@ -21,7 +31,10 @@ export class OrderController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@CurrentUser() user: RequestUser, @Body() body: CreateOrderDto) {
-    return this.createOrderUsecase.execute({ tableId: body.tableId, userId: user.userId, items: body.items }, user.username);
+    return this.createOrderUsecase.execute(
+      { tableId: body.tableId, userId: user.userId, items: body.items },
+      user.username,
+    );
   }
 
   @Roles('COZINHA', 'GERENTE', 'ADMIN')
@@ -39,7 +52,11 @@ export class OrderController {
   @Roles('COZINHA', 'GERENTE', 'ADMIN')
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
-  updateStatus(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateOrderStatusDto) {
+  updateStatus(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateOrderStatusDto,
+  ) {
     if (body.status === 'CANCELLED' && user.role === 'COZINHA') {
       throw AppError.forbidden('Só gerente ou administrador pode cancelar um pedido');
     }

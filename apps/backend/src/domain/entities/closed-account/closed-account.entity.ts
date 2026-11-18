@@ -70,20 +70,51 @@ export class ClosedAccount {
 
   static with(dto: ClosedAccountWithDto): ClosedAccount {
     return new ClosedAccount(
-      dto.id, dto.tableId, dto.tableIdentifier, dto.clientName, dto.openedAt,
-      dto.closedAt, dto.closedBy, dto.subtotal, dto.serviceFee, dto.total, dto.payments,
+      dto.id,
+      dto.tableId,
+      dto.tableIdentifier,
+      dto.clientName,
+      dto.openedAt,
+      dto.closedAt,
+      dto.closedBy,
+      dto.subtotal,
+      dto.serviceFee,
+      dto.total,
+      dto.payments,
     );
   }
 
-  getId(): string { return this.id; }
-  getTableId(): string { return this.tableId; }
-  getTableIdentifier(): string { return this.tableIdentifier; }
-  getClientName(): string | null { return this.clientName; }
-  getOpenedAt(): Date { return this.openedAt; }
-  getClosedAt(): Date { return this.closedAt; }
-  getClosedBy(): string { return this.closedBy; }
-  getSubtotal(): number { return this.subtotal; }
-  getServiceFee(): number { return this.serviceFee; }
-  getTotal(): number { return this.total; }
-  getPayments(): AccountPayment[] { return this.payments; }
+  getId(): string {
+    return this.id;
+  }
+  getTableId(): string {
+    return this.tableId;
+  }
+  getTableIdentifier(): string {
+    return this.tableIdentifier;
+  }
+  getClientName(): string | null {
+    return this.clientName;
+  }
+  getOpenedAt(): Date {
+    return this.openedAt;
+  }
+  getClosedAt(): Date {
+    return this.closedAt;
+  }
+  getClosedBy(): string {
+    return this.closedBy;
+  }
+  getSubtotal(): number {
+    return this.subtotal;
+  }
+  getServiceFee(): number {
+    return this.serviceFee;
+  }
+  getTotal(): number {
+    return this.total;
+  }
+  getPayments(): AccountPayment[] {
+    return this.payments;
+  }
 }

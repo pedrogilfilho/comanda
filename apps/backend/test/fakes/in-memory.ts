@@ -51,7 +51,9 @@ export class InMemoryOrderRepository extends OrderRepository implements Snapshot
     return this.items.find((o) => o.getId() === id) ?? null;
   }
   async findActiveByTableId(tableId: string) {
-    return this.items.filter((o) => o.getTableId() === tableId && ACTIVE_ORDER_STATUSES.includes(o.getStatus()));
+    return this.items.filter(
+      (o) => o.getTableId() === tableId && ACTIVE_ORDER_STATUSES.includes(o.getStatus()),
+    );
   }
   async findAllActive() {
     return this.items.filter((o) => ACTIVE_ORDER_STATUSES.includes(o.getStatus()));
@@ -109,9 +111,19 @@ export class InMemoryProductRepository extends ProductRepository implements Snap
     const s = this.stock.get(p.getId());
     if (s === undefined || s === p.getStock()) return p;
     const copy = Product.with({
-      id: p.getId(), name: p.getName(), description: p.getDescription(), price: p.getPrice(), pricePerKg: p.getPricePerKg(),
-      minGrams: p.getMinGrams(), category: p.getCategory(), isMeat: p.getIsMeat(), available: p.getAvailable(), stock: s,
-      minStock: p.getMinStock(), createdAt: p.getCreatedAt(), updatedAt: p.getUpdatedAt(),
+      id: p.getId(),
+      name: p.getName(),
+      description: p.getDescription(),
+      price: p.getPrice(),
+      pricePerKg: p.getPricePerKg(),
+      minGrams: p.getMinGrams(),
+      category: p.getCategory(),
+      isMeat: p.getIsMeat(),
+      available: p.getAvailable(),
+      stock: s,
+      minStock: p.getMinStock(),
+      createdAt: p.getCreatedAt(),
+      updatedAt: p.getUpdatedAt(),
     });
     return copy;
   }

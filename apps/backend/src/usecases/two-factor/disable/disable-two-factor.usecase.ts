@@ -20,10 +20,15 @@ export class DisableTwoFactorUsecase {
     if (user.isTwoFactorRequired()) {
       throw new ForbiddenException('A verificação em 2 etapas é obrigatória para Administrador e Gerente.');
     }
-    if (!user.getTwoFactorEnabled()) throw new BadRequestException('A verificação em 2 etapas já está desativada');
+    if (!user.getTwoFactorEnabled())
+      throw new BadRequestException('A verificação em 2 etapas já está desativada');
 
     const locked = this.twoFactorService.minutesLocked(userId);
-    if (locked > 0) throw AppError.badRequest('TWO_FACTOR_LOCKED', `Muitas tentativas erradas. Tente de novo em ${locked} min.`);
+    if (locked > 0)
+      throw AppError.badRequest(
+        'TWO_FACTOR_LOCKED',
+        `Muitas tentativas erradas. Tente de novo em ${locked} min.`,
+      );
 
     if (!this.twoFactorService.matchCode(user.getTwoFactorSecret(), user.getTwoFactorRecoveryCodes(), code)) {
       this.twoFactorService.registerFailure(userId);
@@ -34,7 +39,11 @@ export class DisableTwoFactorUsecase {
     user.disableTwoFactor();
     await this.userRepository.update(user);
     await this.auditLogRepository.create(
-      AuditLog.create('DOIS_FATORES_DESATIVADO', user.getUsername(), `${user.getName()} (${user.getUsername()})`),
+      AuditLog.create(
+        'DOIS_FATORES_DESATIVADO',
+        user.getUsername(),
+        `${user.getName()} (${user.getUsername()})`,
+      ),
     );
     return { success: true };
   }

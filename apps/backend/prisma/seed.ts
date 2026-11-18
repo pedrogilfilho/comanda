@@ -34,7 +34,9 @@ async function main() {
     const identifier = String(n);
     const existing = await prisma.table.findUnique({ where: { identifier } });
     if (!existing) {
-      await prisma.table.create({ data: { identifier, capacity: n <= 2 ? 2 : n <= 6 ? 4 : 8, status: 'FREE' } });
+      await prisma.table.create({
+        data: { identifier, capacity: n <= 2 ? 2 : n <= 6 ? 4 : 8, status: 'FREE' },
+      });
       console.log(`✅ Criada mesa: ${identifier}`);
     }
   }

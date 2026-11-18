@@ -15,7 +15,8 @@ export class ResetTwoFactorUserUsecase {
   async execute(userId: string, actor: string): Promise<{ success: boolean }> {
     const user = await this.userRepository.findById(userId);
     if (!user) throw new NotFoundException('Usuário não encontrado');
-    if (!user.getTwoFactorEnabled()) throw new BadRequestException('Este usuário não usa a verificação em 2 etapas');
+    if (!user.getTwoFactorEnabled())
+      throw new BadRequestException('Este usuário não usa a verificação em 2 etapas');
 
     user.disableTwoFactor();
     await this.userRepository.update(user);

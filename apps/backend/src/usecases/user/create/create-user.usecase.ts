@@ -24,7 +24,9 @@ export class CreateUserUsecase {
     if (!name) throw new BadRequestException('Nome é obrigatório');
     if (!username) throw new BadRequestException('Usuário (login) é obrigatório');
     if (!USERNAME_PATTERN.test(username)) {
-      throw new BadRequestException('Usuário deve ter de 3 a 30 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado');
+      throw new BadRequestException(
+        'Usuário deve ter de 3 a 30 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado',
+      );
     }
     if (!USER_ROLES.includes(dto.role)) {
       throw new BadRequestException('Função inválida');

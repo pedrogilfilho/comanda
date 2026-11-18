@@ -32,7 +32,8 @@ export class CreateProductUsecase {
 
     const isMeat = input.category === 'CARNE';
     if (isMeat) {
-      if (!Number.isInteger(input.pricePerKg) || input.pricePerKg! <= 0) throw new BadRequestException('Informe o preço por kg');
+      if (!Number.isInteger(input.pricePerKg) || input.pricePerKg! <= 0)
+        throw new BadRequestException('Informe o preço por kg');
       if (input.minGrams != null && (!Number.isInteger(input.minGrams) || input.minGrams <= 0)) {
         throw new BadRequestException('O pedido mínimo em gramas precisa ser maior que zero');
       }
@@ -54,7 +55,9 @@ export class CreateProductUsecase {
     });
     await this.productRepository.create(product);
 
-    await this.auditLogRepository.create(AuditLog.create('ITEM_CRIADO', actor, `${name} (${input.category})`));
+    await this.auditLogRepository.create(
+      AuditLog.create('ITEM_CRIADO', actor, `${name} (${input.category})`),
+    );
     return { id: product.getId() };
   }
 }

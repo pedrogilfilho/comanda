@@ -1,6 +1,21 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
-import { MAX_INSTALLMENTS, PAYMENT_METHODS, TABLE_IDENTIFIER_MAX_LENGTH, type PaymentMethod } from '@comanda/shared';
+import {
+  IsArray,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import {
+  MAX_INSTALLMENTS,
+  PAYMENT_METHODS,
+  TABLE_IDENTIFIER_MAX_LENGTH,
+  type PaymentMethod,
+} from '@comanda/shared';
 
 export class OpenTableDto {
   @IsString() @MaxLength(TABLE_IDENTIFIER_MAX_LENGTH) identifier!: string;

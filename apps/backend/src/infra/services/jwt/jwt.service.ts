@@ -35,8 +35,10 @@ export class JwtService {
   }
 
   verifyChallenge(token: string): ChallengePayload {
-    const payload = jwt.verify(token, this.challengeSecret()) as jwt.JwtPayload & Partial<ChallengePayload> & { purpose?: string };
-    if (payload.purpose !== '2fa' || !payload.userId || !payload.step) throw new Error('Token de verificação inválido');
+    const payload = jwt.verify(token, this.challengeSecret()) as jwt.JwtPayload &
+      Partial<ChallengePayload> & { purpose?: string };
+    if (payload.purpose !== '2fa' || !payload.userId || !payload.step)
+      throw new Error('Token de verificação inválido');
     return { userId: payload.userId, step: payload.step };
   }
 

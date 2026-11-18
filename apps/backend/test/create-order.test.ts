@@ -31,7 +31,14 @@ describe('CreateOrderUsecase', () => {
     s.products.seed([meat, beer]);
 
     const result = await s.usecase.execute(
-      { tableId: table.getId(), userId: 'u1', items: [{ productId: meat.getId(), quantity: 500 }, { productId: beer.getId(), quantity: 2, notes: ' bem  gelada ' }] },
+      {
+        tableId: table.getId(),
+        userId: 'u1',
+        items: [
+          { productId: meat.getId(), quantity: 500 },
+          { productId: beer.getId(), quantity: 2, notes: ' bem  gelada ' },
+        ],
+      },
       'carlos',
     );
 
@@ -52,7 +59,10 @@ describe('CreateOrderUsecase', () => {
     s.products.seed([meat]);
 
     await expect(
-      s.usecase.execute({ tableId: table.getId(), userId: 'u1', items: [{ productId: meat.getId(), quantity: 200 }] }, 'carlos'),
+      s.usecase.execute(
+        { tableId: table.getId(), userId: 'u1', items: [{ productId: meat.getId(), quantity: 200 }] },
+        'carlos',
+      ),
     ).rejects.toMatchObject({ code: 'VALIDATION' });
     expect(s.orders.items).toHaveLength(0);
   });
@@ -67,7 +77,14 @@ describe('CreateOrderUsecase', () => {
 
     await expect(
       s.usecase.execute(
-        { tableId: table.getId(), userId: 'u1', items: [{ productId: meat.getId(), quantity: 500 }, { productId: beer.getId(), quantity: 2 }] },
+        {
+          tableId: table.getId(),
+          userId: 'u1',
+          items: [
+            { productId: meat.getId(), quantity: 500 },
+            { productId: beer.getId(), quantity: 2 },
+          ],
+        },
         'carlos',
       ),
     ).rejects.toMatchObject({ code: 'STOCK_INSUFFICIENT' });
@@ -86,7 +103,14 @@ describe('CreateOrderUsecase', () => {
 
     await expect(
       s.usecase.execute(
-        { tableId: table.getId(), userId: 'u1', items: [{ productId: beer.getId(), quantity: 2 }, { productId: beer.getId(), quantity: 2 }] },
+        {
+          tableId: table.getId(),
+          userId: 'u1',
+          items: [
+            { productId: beer.getId(), quantity: 2 },
+            { productId: beer.getId(), quantity: 2 },
+          ],
+        },
         'carlos',
       ),
     ).rejects.toBeInstanceOf(AppError);
@@ -99,7 +123,14 @@ describe('CreateOrderUsecase', () => {
     s.tables.items = [table];
     s.products.seed([cerveja()]);
     await expect(
-      s.usecase.execute({ tableId: table.getId(), userId: 'u1', items: [{ productId: s.products.items[0].getId(), quantity: 1 }] }, 'carlos'),
+      s.usecase.execute(
+        {
+          tableId: table.getId(),
+          userId: 'u1',
+          items: [{ productId: s.products.items[0].getId(), quantity: 1 }],
+        },
+        'carlos',
+      ),
     ).rejects.toMatchObject({ code: 'TABLE_NOT_OPEN' });
   });
 });

@@ -25,7 +25,10 @@ export class AuthOrChallengeGuard implements CanActivate {
         if (challenge.step !== 'setup') throw new Error();
         userId = challenge.userId;
       } catch {
-        throw AppError.unauthorized('CHALLENGE_EXPIRED', 'O tempo para configurar acabou. Entre com usuário e senha de novo.');
+        throw AppError.unauthorized(
+          'CHALLENGE_EXPIRED',
+          'O tempo para configurar acabou. Entre com usuário e senha de novo.',
+        );
       }
       request.duringLogin = true;
     } else {
@@ -40,8 +43,14 @@ export class AuthOrChallengeGuard implements CanActivate {
     }
 
     const user = await this.userRepository.findById(userId);
-    if (!user || !user.getActive()) throw AppError.unauthorized('UNAUTHORIZED', 'Sessão inválida. Entre de novo.');
-    const current: RequestUser = { userId: user.getId(), username: user.getUsername(), name: user.getName(), role: user.getRole() };
+    if (!user || !user.getActive())
+      throw AppError.unauthorized('UNAUTHORIZED', 'Sessão inválida. Entre de novo.');
+    const current: RequestUser = {
+      userId: user.getId(),
+      username: user.getUsername(),
+      name: user.getName(),
+      role: user.getRole(),
+    };
     request.user = current;
     return true;
   }

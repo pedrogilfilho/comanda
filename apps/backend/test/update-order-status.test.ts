@@ -16,7 +16,14 @@ function setup() {
   const movements = new InMemoryStockMovementRepository();
   const logs = new InMemoryAuditLogRepository();
   const uow = new FakeUnitOfWork([orders, products, tables, movements, logs]);
-  return { usecase: new UpdateOrderStatusUsecase(uow, orders, tables, products, movements, logs), orders, products, tables, movements, logs };
+  return {
+    usecase: new UpdateOrderStatusUsecase(uow, orders, tables, products, movements, logs),
+    orders,
+    products,
+    tables,
+    movements,
+    logs,
+  };
 }
 
 describe('UpdateOrderStatusUsecase', () => {
@@ -44,8 +51,12 @@ describe('UpdateOrderStatusUsecase', () => {
     order.updateStatus('READY');
     order.updateStatus('DELIVERED');
 
-    await expect(s.usecase.execute(order.getId(), 'PENDING', 'cozinha')).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
-    await expect(s.usecase.execute(order.getId(), 'CLOSED', 'cozinha')).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
+    await expect(s.usecase.execute(order.getId(), 'PENDING', 'cozinha')).rejects.toMatchObject({
+      code: 'INVALID_TRANSITION',
+    });
+    await expect(s.usecase.execute(order.getId(), 'CLOSED', 'cozinha')).rejects.toMatchObject({
+      code: 'INVALID_TRANSITION',
+    });
     expect(order.getStatus()).toBe('DELIVERED');
   });
 
@@ -75,6 +86,8 @@ describe('UpdateOrderStatusUsecase', () => {
     s.orders.items = [order];
     order.updateStatus('PREPARING');
     order.updateStatus('READY');
-    await expect(s.usecase.execute(order.getId(), 'CANCELLED', 'gerente')).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
+    await expect(s.usecase.execute(order.getId(), 'CANCELLED', 'gerente')).rejects.toMatchObject({
+      code: 'INVALID_TRANSITION',
+    });
   });
 });

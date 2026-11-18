@@ -29,7 +29,8 @@ export class AdjustStockUsecase {
   ) {}
 
   async execute({ productId, stock, type, reason, actor }: AdjustStockInput): Promise<{ stock: number }> {
-    if (!Number.isInteger(stock) || stock < 0) throw AppError.badRequest('VALIDATION', 'Quantidade de estoque inválida');
+    if (!Number.isInteger(stock) || stock < 0)
+      throw AppError.badRequest('VALIDATION', 'Quantidade de estoque inválida');
     const product = await this.productRepository.findById(productId);
     if (!product || !product.getAvailable()) throw AppError.notFound('Item não encontrado');
 
@@ -39,10 +40,16 @@ export class AdjustStockUsecase {
 
     await this.uow.run(async () => {
       await this.productRepository.update(product);
-      await this.stockMovementRepository.create(StockMovement.create({ productId, before, after: product.getStock(), type, actor, note }));
+      await this.stockMovementRepository.create(
+        StockMovement.create({ productId, before, after: product.getStock(), type, actor, note }),
+      );
       const fmt = (v: number) => formatQuantity(v, product.getIsMeat());
       await this.auditLogRepository.create(
-        AuditLog.create('ESTOQUE_AJUSTADO', actor, `${product.getName()}: ${fmt(before)} → ${fmt(product.getStock())}${note ? ` — ${note}` : ''}`),
+        AuditLog.create(
+          'ESTOQUE_AJUSTADO',
+          actor,
+          `${product.getName()}: ${fmt(before)} → ${fmt(product.getStock())}${note ? ` — ${note}` : ''}`,
+        ),
       );
     });
     return { stock: product.getStock() };

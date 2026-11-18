@@ -17,7 +17,11 @@ export class ReportController {
 
   private range({ from, to }: DateRangeDto) {
     const r = Utils.dayRangeBrt(from, to);
-    if (!r) throw AppError.badRequest('VALIDATION', 'Período inválido. Use datas no formato AAAA-MM-DD e a data inicial antes da final.');
+    if (!r)
+      throw AppError.badRequest(
+        'VALIDATION',
+        'Período inválido. Use datas no formato AAAA-MM-DD e a data inicial antes da final.',
+      );
     return r;
   }
 

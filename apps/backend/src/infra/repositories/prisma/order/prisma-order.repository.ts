@@ -23,7 +23,14 @@ export class PrismaOrderRepository extends OrderRepository {
       totalAmount: raw.totalAmount,
       notes: raw.notes,
       items: raw.items.map((i) =>
-        OrderItem.with({ id: i.id, productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, weighed: i.weighed, notes: i.notes }),
+        OrderItem.with({
+          id: i.id,
+          productId: i.productId,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          weighed: i.weighed,
+          notes: i.notes,
+        }),
       ),
       closedAccountId: raw.closedAccountId,
       createdAt: raw.createdAt,
@@ -104,7 +111,12 @@ export class PrismaOrderRepository extends OrderRepository {
   async update(order: Order): Promise<void> {
     await this.prisma.db.order.update({
       where: { id: order.getId() },
-      data: { status: order.getStatus(), totalAmount: order.getTotalAmount(), notes: order.getNotes(), updatedAt: order.getUpdatedAt() },
+      data: {
+        status: order.getStatus(),
+        totalAmount: order.getTotalAmount(),
+        notes: order.getNotes(),
+        updatedAt: order.getUpdatedAt(),
+      },
     });
   }
 

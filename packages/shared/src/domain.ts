@@ -34,7 +34,13 @@ export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
 };
 
 export type ProductCategory = 'CARNE' | 'ACOMPANHAMENTO' | 'CALDO' | 'BEBIDA' | 'OUTROS';
-export const PRODUCT_CATEGORIES: readonly ProductCategory[] = ['CARNE', 'ACOMPANHAMENTO', 'CALDO', 'BEBIDA', 'OUTROS'];
+export const PRODUCT_CATEGORIES: readonly ProductCategory[] = [
+  'CARNE',
+  'ACOMPANHAMENTO',
+  'CALDO',
+  'BEBIDA',
+  'OUTROS',
+];
 export const CATEGORY_LABEL: Record<ProductCategory, string> = {
   CARNE: 'Carnes',
   ACOMPANHAMENTO: 'Acompanhamentos',

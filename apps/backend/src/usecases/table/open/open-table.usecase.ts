@@ -20,7 +20,10 @@ export class OpenTableUsecase {
     const identifier = String(dto.identifier ?? '').trim();
     if (!identifier) throw AppError.badRequest('VALIDATION', 'Informe o número ou identificador da mesa');
     if (identifier.length > TABLE_IDENTIFIER_MAX_LENGTH) {
-      throw AppError.badRequest('VALIDATION', `Identificador muito longo (máximo ${TABLE_IDENTIFIER_MAX_LENGTH} caracteres)`);
+      throw AppError.badRequest(
+        'VALIDATION',
+        `Identificador muito longo (máximo ${TABLE_IDENTIFIER_MAX_LENGTH} caracteres)`,
+      );
     }
     const clientName = dto.clientName?.trim() || null;
 

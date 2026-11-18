@@ -39,13 +39,31 @@ export class StockMovement {
     );
   }
 
-  getId(): string { return this.id; }
-  getProductId(): string { return this.productId; }
-  getBefore(): number { return this.before; }
-  getAfter(): number { return this.after; }
-  getType(): StockMovementType { return this.type; }
-  getOrderId(): string | null { return this.orderId; }
-  getActor(): string { return this.actor; }
-  getNote(): string | null { return this.note; }
-  getCreatedAt(): Date { return this.createdAt; }
+  getId(): string {
+    return this.id;
+  }
+  getProductId(): string {
+    return this.productId;
+  }
+  getBefore(): number {
+    return this.before;
+  }
+  getAfter(): number {
+    return this.after;
+  }
+  getType(): StockMovementType {
+    return this.type;
+  }
+  getOrderId(): string | null {
+    return this.orderId;
+  }
+  getActor(): string {
+    return this.actor;
+  }
+  getNote(): string | null {
+    return this.note;
+  }
+  getCreatedAt(): Date {
+    return this.createdAt;
+  }
 }
