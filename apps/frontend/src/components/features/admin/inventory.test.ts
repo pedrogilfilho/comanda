@@ -50,4 +50,11 @@ describe('changedItems', () => {
   it('aponta os itens com valor inválido', () => {
     expect(changedItems([beer, meat], { b: '2,5', m: '-1' })).toEqual({ invalid: ['Cerveja', 'Picanha'] });
   });
+
+  it('item que o usuário digitou vai mesmo igual ao estoque da tela', () => {
+    // A tela pode estar desatualizada; o servidor compara com o estoque real
+    expect(changedItems([beer, meat], { b: '10', m: '5' }, new Set(['b']))).toEqual({
+      items: [{ productId: 'b', stock: 10 }],
+    });
+  });
 });

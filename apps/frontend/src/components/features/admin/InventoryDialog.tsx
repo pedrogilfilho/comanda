@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { errorMessage } from '@/services/http';
 import { saveInventory } from '@/services/products';
@@ -22,9 +22,22 @@ export default function InventoryDialog({ products, onClose, onSaved }: Inventor
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(products.map((p) => [p.id, toCountInput(p)])),
   );
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
   const [saving, setSaving] = useState(false);
 
-  const result = changedItems(products, values);
+  // A lista é recarregada ao abrir: atualiza os campos que o usuário ainda não mexeu
+  useEffect(() => {
+    setValues((v) => {
+      const next = { ...v };
+      products.forEach((p) => {
+        if (!touched.has(p.id)) next[p.id] = toCountInput(p);
+      });
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando a lista muda
+  }, [products]);
+
+  const result = changedItems(products, values, touched);
   const changed = 'items' in result ? result.items.length : 0;
 
   const save = async () => {
@@ -88,7 +101,10 @@ export default function InventoryDialog({ products, onClose, onSaved }: Inventor
                       inputMode="decimal"
                       className="w-28 text-right tabular-nums"
                       value={values[p.id]}
-                      onChange={(e) => setValues((v) => ({ ...v, [p.id]: e.target.value }))}
+                      onChange={(e) => {
+                        setValues((v) => ({ ...v, [p.id]: e.target.value }));
+                        setTouched((t) => new Set(t).add(p.id));
+                      }}
                     />
                     <span className="w-6 text-xs text-ink-muted">{p.isMeat ? 'kg' : 'un'}</span>
                   </li>

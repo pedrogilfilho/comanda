@@ -187,7 +187,14 @@ export default function StockManager({ products, loading, onChange }: StockManag
 
       {!loading && products.length > 0 && (
         <div className="flex justify-end border-t border-hairline pt-4">
-          <Button variant="secondary" icon={ClipboardList} onClick={() => setInventory(true)}>
+          <Button
+            variant="secondary"
+            icon={ClipboardList}
+            onClick={() => {
+              onChange(); // recarrega o estoque para o inventário partir do valor atual
+              setInventory(true);
+            }}
+          >
             Inventário
           </Button>
         </div>
