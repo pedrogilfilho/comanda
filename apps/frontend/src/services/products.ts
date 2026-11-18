@@ -24,3 +24,7 @@ export const removeProduct = (id: string) => http.delete<{ success: boolean }>(`
 // stock = novo valor absoluto; o tipo vai para o histórico de movimentações
 export const adjustStock = (id: string, stock: number, type: StockAdjustment, reason: string) =>
   http.patch<{ stock: number }>(`/products/${id}/stock`, { stock, type, reason });
+
+// Inventário: grava todas as contagens numa operação só (ou todas, ou nenhuma)
+export const saveInventory = (items: { productId: string; stock: number }[]) =>
+  http.post<{ changed: number }>('/products/inventory', { items });

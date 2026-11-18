@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { STOCK_NOTE_MAX_LENGTH } from '@comanda/shared';
 import { errorMessage } from '@/services/http';
@@ -17,6 +17,7 @@ import Field, { Input, Select } from '@/components/ui/Field';
 import Icon from '@/components/ui/Icon';
 import PageTitle from '@/components/ui/PageTitle';
 import { SkeletonList } from '@/components/ui/Skeleton';
+import InventoryDialog from './InventoryDialog';
 
 interface StockManagerProps {
   products: Product[];
@@ -24,18 +25,16 @@ interface StockManagerProps {
   onChange: () => void;
 }
 
-type Movement = 'ENTRADA' | 'SAIDA' | 'CONTAGEM';
+type Movement = 'ENTRADA' | 'SAIDA';
 
 const MOVEMENTS: { key: Movement; label: string; hint: string }[] = [
   { key: 'ENTRADA', label: 'Entrada', hint: 'Chegou mercadoria' },
   { key: 'SAIDA', label: 'Saída', hint: 'Perda, quebra, vencido' },
-  { key: 'CONTAGEM', label: 'Contagem', hint: 'Corrigir pelo inventário' },
 ];
 
 const REASONS: Record<Movement, string[]> = {
   ENTRADA: ['Compra de fornecedor', 'Devolução', 'Outro'],
   SAIDA: ['Quebra', 'Vencido ou estragado', 'Consumo interno', 'Cortesia', 'Outro'],
-  CONTAGEM: ['Inventário', 'Erro de lançamento', 'Outro'],
 };
 
 const EMPTY_FORM = { movement: 'ENTRADA' as Movement, quantity: '', reason: REASONS.ENTRADA[0], note: '' };
@@ -44,6 +43,7 @@ export default function StockManager({ products, loading, onChange }: StockManag
   const [target, setTarget] = useState<Product | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [inventory, setInventory] = useState(false);
 
   const low = products.filter((p) => p.lowStock);
 
@@ -63,8 +63,7 @@ export default function StockManager({ products, loading, onChange }: StockManag
     if (!form.quantity.trim() || !Number.isFinite(qty) || qty < 0) return null;
     const amount = Math.round(qty * factor(target));
     if (form.movement === 'ENTRADA') return amount > 0 ? target.stock + amount : null;
-    if (form.movement === 'SAIDA') return amount > 0 ? target.stock - amount : null;
-    return amount;
+    return amount > 0 ? target.stock - amount : null;
   })();
 
   const handleSave = async (e: React.FormEvent) => {
@@ -186,6 +185,18 @@ export default function StockManager({ products, loading, onChange }: StockManag
         />
       )}
 
+      {!loading && products.length > 0 && (
+        <div className="flex justify-end border-t border-hairline pt-4">
+          <Button variant="secondary" icon={ClipboardList} onClick={() => setInventory(true)}>
+            Inventário
+          </Button>
+        </div>
+      )}
+
+      {inventory && (
+        <InventoryDialog products={products} onClose={() => setInventory(false)} onSaved={onChange} />
+      )}
+
       {target && (
         <Dialog
           title="Ajustar estoque"
@@ -196,7 +207,7 @@ export default function StockManager({ products, loading, onChange }: StockManag
           <form onSubmit={handleSave} className="space-y-4">
             <fieldset>
               <legend className="mb-1.5 text-sm font-medium text-ink">Tipo de movimentação</legend>
-              <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-3" role="radiogroup">
+              <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2" role="radiogroup">
                 {MOVEMENTS.map((m) => {
                   const active = form.movement === m.key;
                   return (
@@ -229,7 +240,7 @@ export default function StockManager({ products, loading, onChange }: StockManag
             </fieldset>
 
             <Field
-              label={form.movement === 'CONTAGEM' ? `Quantidade contada (${unit})` : `Quantidade (${unit})`}
+              label={`Quantidade (${unit})`}
               htmlFor="stock-qty"
               hint={target.isMeat ? 'Ex.: 5 ou 2,5' : 'Ex.: 24'}
             >
