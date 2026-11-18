@@ -30,6 +30,7 @@ function setup(products: Product[], items: (t: ReturnType<typeof openTable>) => 
   return {
     usecase: new ChangeOrderItemUsecase(uow, orders, productsRepo, tables, movements, logs),
     order,
+    stored: () => orders.items[0],
     item: order.getItems()[0],
     products: productsRepo,
     movements,
@@ -49,7 +50,7 @@ describe('ChangeOrderItemUsecase', () => {
       gerente,
     );
     expect(res.total).toBe(1500);
-    expect(s.order.getTotalAmount()).toBe(1500);
+    expect(s.stored().getTotalAmount()).toBe(1500);
     expect(await stockOf(s, beer)).toBe(13);
     expect(s.movements.items[0].getType()).toBe('ESTORNO');
     expect(s.movements.items[0].getNote()).toBe('Lançado a mais');
@@ -74,7 +75,7 @@ describe('ChangeOrderItemUsecase', () => {
       { orderId: s.order.getId(), itemId: s.item.getId(), quantity: 0, reason: 'PERDA' },
       gerente,
     );
-    expect(s.order.getItems()).toHaveLength(1);
+    expect(s.stored().getItems()).toHaveLength(1);
     expect(await stockOf(s, meat)).toBe(5000);
     const m = s.movements.items[0];
     expect([m.getType(), m.getBefore(), m.getAfter(), m.getNote()]).toEqual([
@@ -93,7 +94,7 @@ describe('ChangeOrderItemUsecase', () => {
       { orderId: s.order.getId(), itemId: s.item.getId(), quantity: 0, reason: 'LANCADO_ERRADO' },
       gerente,
     );
-    expect(s.order.getStatus()).toBe('CANCELLED');
+    expect(s.stored().getStatus()).toBe('CANCELLED');
     expect(await stockOf(s, beer)).toBe(12);
   });
 
@@ -105,7 +106,7 @@ describe('ChangeOrderItemUsecase', () => {
       garcom,
     );
     expect(s.item.getQuantity()).toBe(2); // o item original é imutável
-    expect(s.order.getItems()[0].getQuantity()).toBe(1);
+    expect(s.stored().getItems()[0].getQuantity()).toBe(1);
   });
 
   it('garçom não mexe em pedido em preparo', async () => {
@@ -199,7 +200,12 @@ describe('ChangeOrderItemUsecase', () => {
       { orderId: s.order.getId(), itemId: second.getId(), quantity: 1, reason: 'LANCADO_A_MAIS' },
       gerente,
     );
-    expect(s.order.getItems().map((i) => i.getQuantity())).toEqual([3, 1]);
+    expect(
+      s
+        .stored()
+        .getItems()
+        .map((i) => i.getQuantity()),
+    ).toEqual([3, 1]);
     expect(await stockOf(s, beer)).toBe(11);
   });
 });

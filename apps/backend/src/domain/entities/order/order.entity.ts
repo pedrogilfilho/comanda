@@ -123,6 +123,22 @@ export class Order {
     this.updatedAt = new Date();
   }
 
+  // Cópia independente (mesmo id): para calcular a mudança sem mexer no que foi lido
+  copy(): Order {
+    return new Order(
+      this.id,
+      this.tableId,
+      this.userId,
+      this.status,
+      this.totalAmount,
+      this.notes,
+      [...this.items],
+      this.createdAt,
+      this.updatedAt,
+      this.closedAccountId,
+    );
+  }
+
   // Diminui (ou tira, com 0) um item e recalcula o total; sem itens, o pedido fica cancelado
   changeItemQuantity(itemId: string, quantity: number): void {
     this.items = this.items.flatMap((i) =>

@@ -1,3 +1,4 @@
+import type { OrderStatus } from '@comanda/shared';
 import { Order } from '../entities/order/order.entity';
 
 export abstract class OrderRepository {
@@ -9,7 +10,11 @@ export abstract class OrderRepository {
   abstract findByClosedAccountIds(ids: string[]): Promise<Order[]>; // pedidos de contas fechadas (histórico e relatórios)
   abstract countByUserId(userId: string): Promise<number>;
   abstract update(order: Order): Promise<void>;
-  // Grava os itens como estão na entidade (apaga os tirados, atualiza quantidades) e o total/status
-  abstract replaceItems(order: Order): Promise<void>;
+  // Grava a mudança de um item (nova quantidade ou removido) e o total/status do pedido, só se
+  // o pedido e o item ainda estiverem como foram lidos; false se outra pessoa mexeu antes
+  abstract changeItem(
+    order: Order,
+    expected: { status: OrderStatus; itemId: string; quantity: number },
+  ): Promise<boolean>;
   abstract closeByTableId(tableId: string, closedAccountId: string): Promise<void>;
 }

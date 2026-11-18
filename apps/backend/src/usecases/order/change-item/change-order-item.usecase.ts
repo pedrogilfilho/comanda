@@ -79,10 +79,21 @@ export class ChangeOrderItemUsecase {
     const table = await this.tableRepository.findById(order.getTableId());
     const label = ITEM_CHANGE_REASON_LABEL[input.reason];
     const diff = before - after;
-    order.changeItemQuantity(item.getId(), after);
+    const updated = order.copy();
+    updated.changeItemQuantity(item.getId(), after);
 
     await this.uow.run(async () => {
-      await this.orderRepository.replaceItems(order);
+      const saved = await this.orderRepository.changeItem(updated, {
+        status: order.getStatus(),
+        itemId: item.getId(),
+        quantity: before,
+      });
+      if (!saved) {
+        throw AppError.conflict(
+          'ORDER_CHANGED',
+          'O pedido mudou enquanto você alterava. Abra de novo e confira.',
+        );
+      }
       if (RETURNS_TO_STOCK[input.reason]) {
         const stockBefore = await this.productRepository.incrementStock(item.getProductId(), diff);
         await this.stockMovementRepository.create(
@@ -120,6 +131,6 @@ export class ChangeOrderItemUsecase {
       );
     });
 
-    return { total: order.getTotalAmount() };
+    return { total: updated.getTotalAmount() };
   }
 }

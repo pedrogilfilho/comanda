@@ -120,18 +120,26 @@ export class PrismaOrderRepository extends OrderRepository {
     });
   }
 
-  async replaceItems(order: Order): Promise<void> {
-    const items = order.getItems();
-    await this.prisma.db.orderItem.deleteMany({
-      where: { orderId: order.getId(), id: { notIn: items.map((i) => i.getId()) } },
+  async changeItem(
+    order: Order,
+    expected: { status: OrderStatus; itemId: string; quantity: number },
+  ): Promise<boolean> {
+    // Condicional no banco: a cozinha, o fechamento ou outra alteração no meio fazem count = 0
+    const { count } = await this.prisma.db.order.updateMany({
+      where: { id: order.getId(), status: expected.status },
+      data: {
+        status: order.getStatus(),
+        totalAmount: order.getTotalAmount(),
+        updatedAt: order.getUpdatedAt(),
+      },
     });
-    for (const i of items) {
-      await this.prisma.db.orderItem.update({
-        where: { id: i.getId() },
-        data: { quantity: i.getQuantity() },
-      });
-    }
-    await this.update(order);
+    if (count === 0) return false;
+    const changed = order.getItems().find((i) => i.getId() === expected.itemId);
+    const where = { id: expected.itemId, orderId: order.getId(), quantity: expected.quantity };
+    const res = changed
+      ? await this.prisma.db.orderItem.updateMany({ where, data: { quantity: changed.getQuantity() } })
+      : await this.prisma.db.orderItem.deleteMany({ where });
+    return res.count === 1;
   }
 
   async closeByTableId(tableId: string, closedAccountId: string): Promise<void> {

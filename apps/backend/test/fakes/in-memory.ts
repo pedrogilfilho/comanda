@@ -1,5 +1,5 @@
 // Repositórios em memória para testar usecases sem banco. Cada um guarda um array de entidades.
-import { ACTIVE_ORDER_STATUSES, KITCHEN_ORDER_STATUSES } from '@comanda/shared';
+import { ACTIVE_ORDER_STATUSES, KITCHEN_ORDER_STATUSES, type OrderStatus } from '@comanda/shared';
 import { UnitOfWork } from 'src/domain/ports/unit-of-work';
 import { OrderRepository } from 'src/domain/repositories/order.repository.interface';
 import { ProductRepository } from 'src/domain/repositories/product.repository.interface';
@@ -71,8 +71,13 @@ export class InMemoryOrderRepository extends OrderRepository implements Snapshot
   async countByUserId(userId: string) {
     return this.items.filter((o) => o.getUserId() === userId).length;
   }
-  async replaceItems(order: Order) {
+  async changeItem(order: Order, expected: { status: OrderStatus; itemId: string; quantity: number }) {
+    const stored = this.items.find((o) => o.getId() === order.getId());
+    const item = stored?.getItems().find((i) => i.getId() === expected.itemId);
+    if (!stored || stored.getStatus() !== expected.status || item?.getQuantity() !== expected.quantity)
+      return false;
     await this.update(order);
+    return true;
   }
   async update(order: Order) {
     this.items = this.items.map((o) => (o.getId() === order.getId() ? order : o));
