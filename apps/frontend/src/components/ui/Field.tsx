@@ -5,7 +5,7 @@ import { cx } from '@/lib/cx';
 // mínimo para o contorno de um campo; o hairline dos cartões ficaria em 1,3:1 e o campo sumiria.
 export const inputClass = (invalid?: boolean, className?: string) =>
   cx(
-    'block w-full min-h-tap rounded-sm border bg-white px-3 text-base text-ink',
+    'block w-full min-h-tap rounded-sm border bg-surface px-3 text-base text-ink',
     'placeholder:text-ink-muted/70 disabled:bg-surface-2 disabled:text-ink-muted',
     invalid ? 'border-danger' : 'border-ink-muted/70 focus:border-accent-strong',
     className,

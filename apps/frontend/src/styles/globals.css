@@ -18,8 +18,27 @@
   --success: 61 92 58; /* #3d5c3a */
   --warning: 154 95 20; /* #9a5f14 */
   --danger: 176 58 46; /* #b03a2e */
+  --on-accent: 255 255 255; /* texto sobre accent-strong (botão principal) */
 
   color-scheme: light;
+}
+
+/* Tema escuro (Configurações → Aparência). Mesmos nomes, valores para fundo escuro:
+   ink-muted sobre surface ≈ 8:1; accent-strong fica mais claro e o texto do botão (on-accent) escurece. */
+[data-theme='dark'] {
+  --bg: 24 20 16; /* #181410 */
+  --surface: 34 29 23; /* #221d17 */
+  --surface-2: 46 39 31; /* #2e271f */
+  --ink: 243 236 226; /* #f3ece2 */
+  --ink-muted: 190 176 160; /* #beb0a0 */
+  --accent: 214 120 72; /* #d67848 */
+  --accent-strong: 232 140 92; /* #e88c5c: 6,6:1 sobre surface; botão com texto escuro (7,3:1) */
+  --success: 120 170 110; /* #78aa6e */
+  --warning: 214 160 70; /* #d6a046 */
+  --danger: 225 110 95; /* #e16e5f */
+  --on-accent: 24 20 16; /* texto escuro sobre o laranja claro */
+
+  color-scheme: dark;
 }
 
 html {

@@ -18,6 +18,7 @@ const config: Config = {
       'ink-muted': token('ink-muted'),
       hairline: 'rgb(var(--ink) / 0.14)',
       accent: token('accent'),
+      'on-accent': token('on-accent'),
       'accent-strong': token('accent-strong'),
       success: token('success'),
       warning: token('warning'),

@@ -9,7 +9,7 @@ export type ButtonSize = 'md' | 'sm';
 
 const VARIANT: Record<ButtonVariant, string> = {
   // accent é o único botão preenchido
-  primary: 'bg-accent-strong text-white hover:bg-accent-strong/90 active:bg-accent-strong/80',
+  primary: 'bg-accent-strong text-on-accent hover:bg-accent-strong/90 active:bg-accent-strong/80',
   secondary: 'bg-surface text-ink border border-hairline hover:bg-surface-2 active:bg-surface-2/70',
   ghost: 'bg-transparent text-ink-muted hover:bg-surface-2 hover:text-ink active:bg-surface-2/70',
   danger: 'bg-surface text-danger border border-danger/30 hover:bg-danger/5 active:bg-danger/10',
