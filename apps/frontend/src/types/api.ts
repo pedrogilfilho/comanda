@@ -48,6 +48,7 @@ export interface Table {
   capacity: number;
   status: TableStatus;
   clientName: string | null;
+  openedBy: string | null; // quem abriu a mesa
   openedAt: string;
   subtotal: number; // pedidos ativos, sem taxa (centavos)
   serviceFee: number;
