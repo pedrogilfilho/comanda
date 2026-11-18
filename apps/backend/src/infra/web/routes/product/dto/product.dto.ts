@@ -11,6 +11,15 @@ export class CreateProductDto {
   @IsOptional() @IsInt() @Min(0) stock?: number; // unidades, ou gramas para carne
 }
 
+export class UpdateProductDto {
+  @IsString() @MaxLength(80) name!: string;
+  @IsOptional() @IsString() @MaxLength(200) description?: string;
+  @IsIn([...PRODUCT_CATEGORIES]) category!: ProductCategory;
+  @IsOptional() @IsInt() @Min(1) price?: number; // centavos por unidade
+  @IsOptional() @IsInt() @Min(1) pricePerKg?: number; // centavos por kg
+  @IsOptional() @IsInt() @Min(1) minGrams?: number;
+}
+
 export class AdjustStockDto {
   @IsInt() @Min(0) stock!: number; // novo valor absoluto
   @IsIn(['ENTRADA', 'SAIDA', 'CONTAGEM']) type!: 'ENTRADA' | 'SAIDA' | 'CONTAGEM';

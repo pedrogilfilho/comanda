@@ -67,7 +67,9 @@ export type AuditAction =
   | 'CONTA_FECHADA'
   | 'ITEM_CRIADO'
   | 'ITEM_REMOVIDO'
-  | 'ESTOQUE_AJUSTADO';
+  | 'ITEM_EDITADO'
+  | 'ESTOQUE_AJUSTADO'
+  | 'INVENTARIO_FEITO';
 
 export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   USUARIO_CRIADO: 'Usuário criado',
@@ -85,5 +87,7 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   CONTA_FECHADA: 'Conta fechada',
   ITEM_CRIADO: 'Item adicionado ao cardápio',
   ITEM_REMOVIDO: 'Item removido do cardápio',
+  ITEM_EDITADO: 'Item editado no cardápio',
   ESTOQUE_AJUSTADO: 'Estoque ajustado',
+  INVENTARIO_FEITO: 'Inventário de estoque',
 };

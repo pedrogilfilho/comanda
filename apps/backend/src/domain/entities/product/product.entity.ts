@@ -39,6 +39,15 @@ export type ProductWithDto = {
   updatedAt: Date;
 };
 
+export type ProductEditDto = {
+  name: string;
+  description: string | null;
+  category: ProductCategory;
+  price?: number;
+  pricePerKg?: number;
+  minGrams?: number;
+};
+
 export class Product {
   private constructor(
     private readonly id: string,
@@ -149,6 +158,20 @@ export class Product {
 
   setAvailable(available: boolean): void {
     this.available = available;
+    this.updatedAt = new Date();
+  }
+
+  // Edição do cadastro; não mexe no estoque nem troca entre carne e item por unidade
+  edit(dto: ProductEditDto): void {
+    this.name = dto.name;
+    this.description = dto.description;
+    this.category = dto.category;
+    if (this.isMeat) {
+      this.pricePerKg = dto.pricePerKg ?? this.pricePerKg;
+      this.minGrams = dto.minGrams ?? this.minGrams;
+    } else {
+      this.price = dto.price ?? this.price;
+    }
     this.updatedAt = new Date();
   }
 
