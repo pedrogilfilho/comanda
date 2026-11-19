@@ -20,7 +20,11 @@ export function applyTheme(theme: Theme): void {
   } catch {
     // sem armazenamento: vale só até recarregar
   }
+  window.dispatchEvent(new Event(THEME_EVENT));
 }
+
+// Avisa quem mostra o tema (cabeçalho, Configurações) que ele mudou
+export const THEME_EVENT = 'comanda:tema';
 
 // Roda no <head> antes de pintar, para o tema escuro não piscar claro
 export const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('${THEME_KEY}')==='dark')document.documentElement.dataset.theme='dark'}catch(e){}`;

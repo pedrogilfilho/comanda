@@ -3,9 +3,10 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { ROLE_LABEL } from '@comanda/shared';
 import { useSession } from '@/hooks/useSession';
+import { useTheme } from '@/hooks/useTheme';
 import { NAV_BY_ROLE, canAccess, homeFor } from '@/constants';
 import Skeleton from '@/components/ui/Skeleton';
 import Tabs from '@/components/ui/Tabs';
@@ -49,6 +50,8 @@ export function ShellSkeleton() {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useSession();
+  const [theme, chooseTheme] = useTheme();
+  const dark = theme === 'dark';
   const pathname = usePathname();
   const router = useRouter();
   const allowed = canAccess(pathname, user.role);
@@ -78,6 +81,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </p>
               <p className="text-xs text-on-header/70">{ROLE_LABEL[user.role] ?? user.role}</p>
             </div>
+            <button
+              type="button"
+              onClick={() => chooseTheme(dark ? 'light' : 'dark')}
+              className={headerAction}
+              aria-label={dark ? 'Tema claro' : 'Tema escuro'}
+              title={dark ? 'Tema claro' : 'Tema escuro'}
+            >
+              <Icon icon={dark ? Sun : Moon} />
+            </button>
             <Link href="/configuracoes" className={headerAction} aria-label="Configurações">
               <Icon icon={Settings} />
               <span className="hidden sm:inline">Configurações</span>

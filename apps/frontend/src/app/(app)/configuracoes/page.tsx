@@ -7,7 +7,8 @@ import { errorMessage, tokenStore } from '@/services/http';
 import { getSettings } from '@/services/settings';
 import { ROLE_LABEL, time } from '@/lib/format';
 import { activeFor, tokenIssuedAt } from '@/lib/session';
-import { applyTheme, readTheme, type Theme } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { cx } from '@/lib/cx';
 import { useSession } from '@/hooks/useSession';
 import Button from '@/components/ui/Button';
@@ -47,14 +48,13 @@ export default function SettingsPage() {
   const isAdmin = user.role === 'ADMIN';
   const [loginAt, setLoginAt] = useState<Date | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, chooseTheme] = useTheme();
   const [totalTables, setTotalTables] = useState<number | null>(null);
   const [editingTotal, setEditingTotal] = useState(false);
 
   // Lidos depois de montar: o HTML do servidor não conhece o navegador
   useEffect(() => {
     setLoginAt(tokenIssuedAt(tokenStore.get()));
-    setTheme(readTheme());
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
@@ -65,11 +65,6 @@ export default function SettingsPage() {
       .then((s) => setTotalTables(s.totalTables))
       .catch((e) => toast.error(errorMessage(e, 'Erro ao carregar o restaurante')));
   }, [isAdmin]);
-
-  const chooseTheme = (t: Theme) => {
-    setTheme(t);
-    applyTheme(t);
-  };
 
   return (
     <div className="mx-auto max-w-lg space-y-5">
