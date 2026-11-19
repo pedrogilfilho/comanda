@@ -15,22 +15,20 @@ import { useSession } from '@/hooks/useSession';
 import { usePolling } from '@/hooks/usePolling';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import Dialog from '@/components/ui/Dialog';
 import PageTitle from '@/components/ui/PageTitle';
 import StatTile from '@/components/ui/StatTile';
 import { SkeletonList } from '@/components/ui/Skeleton';
 import OpenTableDialog from './OpenTableDialog';
-import OrdersDialog from './OrdersDialog';
 import AddItemsDialog from './AddItemsDialog';
-import TableAccountDialog from './TableAccountDialog';
+import TableDialog from './TableDialog';
 import PickTableDialog from './PickTableDialog';
 import { buildTableMap, openFor } from './tableMap';
 
 type Modal =
   | { kind: 'open'; identifier: string }
   | { kind: 'pick' }
-  | { kind: 'actions' | 'orders' | 'account'; table: Table }
-  | { kind: 'addItems'; table: Table; back: 'orders' | 'none' }
+  | { kind: 'table'; table: Table }
+  | { kind: 'addItems'; table: Table; back: 'table' | 'none' }
   | null;
 
 // Salão: mapa das mesas, pedidos e fechamento de conta (garçom, gerente e admin)
@@ -114,7 +112,7 @@ export default function TablesView() {
               {t ? (
                 <button
                   type="button"
-                  onClick={() => setModal({ kind: 'actions', table: t })}
+                  onClick={() => setModal({ kind: 'table', table: t })}
                   aria-label={`Mesa ${number}, ocupada${t.clientName ? ` por ${t.clientName}` : ''}`}
                   className="flex h-full min-h-24 w-full flex-col gap-1 rounded-md border border-accent/50 bg-accent/10 p-2 text-left hover:bg-accent/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                 >
@@ -163,38 +161,16 @@ export default function TablesView() {
         />
       )}
 
-      {modal?.kind === 'actions' && (
-        <Dialog
-          title={`Mesa ${modal.table.identifier}`}
-          description={[modal.table.clientName, modal.table.openedBy && `aberta por ${modal.table.openedBy}`]
-            .filter(Boolean)
-            .join(' · ')}
-          size="sm"
-          onClose={() => setModal(null)}
-        >
-          <div className="grid gap-2">
-            <Button
-              icon={Plus}
-              onClick={() => setModal({ kind: 'addItems', table: modal.table, back: 'none' })}
-            >
-              Adicionar itens
-            </Button>
-            <Button variant="secondary" onClick={() => setModal({ kind: 'orders', table: modal.table })}>
-              Ver pedidos
-            </Button>
-            <Button variant="secondary" onClick={() => setModal({ kind: 'account', table: modal.table })}>
-              Ver conta
-            </Button>
-          </div>
-        </Dialog>
-      )}
-
-      {modal?.kind === 'orders' && (
-        <OrdersDialog
+      {modal?.kind === 'table' && (
+        <TableDialog
           table={modal.table}
           onClose={() => setModal(null)}
-          onAddItems={() => setModal({ kind: 'addItems', table: modal.table, back: 'orders' })}
+          onAddItems={() => setModal({ kind: 'addItems', table: modal.table, back: 'table' })}
           onChanged={load}
+          onClosed={() => {
+            setModal(null);
+            load();
+          }}
         />
       )}
 
@@ -202,19 +178,8 @@ export default function TablesView() {
         <AddItemsDialog
           tableId={modal.table.id}
           tableIdentifier={modal.table.identifier}
-          onClose={() => setModal(modal.back === 'orders' ? { kind: 'orders', table: modal.table } : null)}
+          onClose={() => setModal(modal.back === 'table' ? { kind: 'table', table: modal.table } : null)}
           onSuccess={load}
-        />
-      )}
-
-      {modal?.kind === 'account' && (
-        <TableAccountDialog
-          table={modal.table}
-          onClose={() => setModal(null)}
-          onClosed={() => {
-            setModal(null);
-            load();
-          }}
         />
       )}
     </div>
